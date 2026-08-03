@@ -21,7 +21,7 @@ export default function ReceptionForm({
     password: '',
     issue: '',
     repairPrice: 500,
-    advancePayment: 0, // NUEVO: Anticipo
+    advancePayment: 0,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,7 +31,7 @@ export default function ReceptionForm({
     setIsSubmitting(true);
 
     const newFolio = `#0${Math.floor(Math.random() * 900 + 100)}`;
-    const currentDate = new Date().toISOString();
+    const currentDate = new Date().toISOString(); 
     const ticketData = { folio: newFolio, date: currentDate, ...formData };
 
     const dbRecord = {
@@ -45,7 +45,7 @@ export default function ReceptionForm({
       status: 'por_revisar',
       part_cost: 0,
       repair_price: Number(formData.repairPrice),
-      advance_payment: Number(formData.advancePayment), // NUEVO
+      advance_payment: Number(formData.advancePayment),
     };
 
     const { data, error } = await supabase
@@ -67,14 +67,14 @@ export default function ReceptionForm({
       client: data.client,
       phone: data.phone,
       deviceType: data.device_type,
-      created_at: currentDate,
+      created_at: currentDate, 
       model: data.model,
       issue: data.issue,
       password: data.password,
       status: data.status,
       partCost: data.part_cost,
       repairPrice: data.repair_price,
-      advancePayment: data.advance_payment, // NUEVO
+      advancePayment: data.advance_payment,
     };
 
     onAddRepair(frontendRepairObj);
@@ -192,7 +192,7 @@ export default function ReceptionForm({
                 required
                 value={formData.model}
                 onChange={(e) =>
-                  setformData({ ...formData, model: e.target.value })
+                  setFormData({ ...formData, model: e.target.value })
                 }
                 className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl focus:outline-none focus:border-blue-500 text-base sm:text-sm text-slate-200"
               />
@@ -206,14 +206,13 @@ export default function ReceptionForm({
                 placeholder="Desbloqueo"
                 value={formData.password}
                 onChange={(e) =>
-                  setformData({ ...formData, password: e.target.value })
+                  setFormData({ ...formData, password: e.target.value })
                 }
                 className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl focus:outline-none focus:border-amber-500 font-mono text-amber-400 text-base sm:text-sm"
               />
             </div>
           </div>
 
-          {/* NUEVO: Anticipo y Precio estimado */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[11px] font-medium text-emerald-400 ml-1">
@@ -223,10 +222,7 @@ export default function ReceptionForm({
                 type="number"
                 value={formData.advancePayment}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    advancePayment: Number(e.target.value),
-                  })
+                  setFormData({ ...formData, advancePayment: Number(e.target.value) })
                 }
                 className="w-full px-4 py-3.5 bg-slate-950/80 border border-emerald-500/30 rounded-xl focus:outline-none focus:border-emerald-500 text-base sm:text-sm text-emerald-400 font-semibold"
                 placeholder="0"
@@ -240,10 +236,7 @@ export default function ReceptionForm({
                 type="number"
                 value={formData.repairPrice}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    repairPrice: Number(e.target.value),
-                  })
+                  setFormData({ ...formData, repairPrice: Number(e.target.value) })
                 }
                 className="w-full px-4 py-3.5 bg-slate-950/80 border border-cyan-500/30 rounded-xl focus:outline-none focus:border-cyan-500 text-base sm:text-sm text-cyan-300 font-semibold"
                 placeholder="500"

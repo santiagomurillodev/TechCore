@@ -2,17 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Search,
-  Clock,
-  DollarSign,
-  Send,
-  FileText,
-  AlertTriangle,
-  ShieldCheck,
-  CheckCircle2,
-  Wallet,
-} from 'lucide-react';
+import { Search, Clock, DollarSign, Send, FileText, AlertTriangle, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { supabase } from './supabase';
 
 interface WorkshopProps {
@@ -28,17 +18,16 @@ export default function WorkshopKanban({
   const [selectedFilter, setSelectedFilter] = useState('todos');
 
   const filteredRepairs = repairs.filter((r) => {
-    const matchesSearch =
-      r.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = 
+      r.folio.toLowerCase().includes(searchTerm.toLowerCase()) || 
       r.client.toLowerCase().includes(searchTerm.toLowerCase());
-
+    
     if (selectedFilter === 'todos') {
       return matchesSearch && r.status !== 'entregado';
     }
     return matchesSearch && r.status === selectedFilter;
   });
 
-  // MATEMÁTICAS CORREGIDAS: Forzamos conversión a Number para evitar concat de strings
   const totalRealProfit = repairs.reduce((acc, curr) => {
     const part = Number(curr.partCost) || 0;
     const price = Number(curr.repairPrice) || 0;
@@ -54,10 +43,7 @@ export default function WorkshopKanban({
   };
 
   const handleUpdateAdvance = async (id: string, advance: number) => {
-    await supabase
-      .from('repairs')
-      .update({ advance_payment: advance })
-      .eq('id', id);
+    await supabase.from('repairs').update({ advance_payment: advance }).eq('id', id);
   };
 
   return (
@@ -72,8 +58,7 @@ export default function WorkshopKanban({
             Panel del Taller
           </h2>
           <p className="text-slate-400 text-xs mt-1">
-            {repairs.filter((r) => r.status !== 'entregado').length} equipos
-            activos en proceso
+            {repairs.filter(r => r.status !== 'entregado').length} equipos activos en proceso
           </p>
         </div>
         <div className="text-right flex-1 sm:flex-none flex flex-col items-end">
@@ -110,14 +95,14 @@ export default function WorkshopKanban({
             { id: 'en_proceso', label: 'En Proceso' },
             { id: 'esperando_pieza', label: 'Esperando Pieza' },
             { id: 'listo', label: 'Listos' },
-            { id: 'entregado', label: '📦 Entregados / Garantías' },
-          ].map((filter) => (
+            { id: 'entregado', label: '📦 Entregados / Garantías' }
+          ].map(filter => (
             <button
               key={filter.id}
               onClick={() => setSelectedFilter(filter.id)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-                selectedFilter === filter.id
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
+                selectedFilter === filter.id 
+                  ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.15)]' 
                   : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-800'
               }`}
             >
@@ -140,23 +125,9 @@ export default function WorkshopKanban({
                     (1000 * 3600 * 24)
                 )
               : 0;
-
-            const formattedDate = item.created_at
-              ? new Date(item.created_at).toLocaleDateString('es-MX', {
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : '';
-            const deliveredDate = item.delivered_at
-              ? new Date(item.delivered_at).toLocaleDateString('es-MX', {
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : null;
+            
+            const formattedDate = item.created_at ? new Date(item.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+            const deliveredDate = item.delivered_at ? new Date(item.delivered_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
 
             const partCost = Number(item.partCost) || 0;
             const repairPrice = Number(item.repairPrice) || 0;
@@ -165,9 +136,7 @@ export default function WorkshopKanban({
             const profit = repairPrice - partCost;
             const isLoss = profit < 0;
 
-            const isEarlyStage =
-              item.status === 'por_revisar' ||
-              item.status === 'esperando_pieza';
+            const isEarlyStage = item.status === 'por_revisar' || item.status === 'esperando_pieza';
             const isReadyStage = item.status === 'listo';
             const isDelivered = item.status === 'entregado';
 
@@ -197,8 +166,7 @@ export default function WorkshopKanban({
                     )}
                     {isLoss && !isDelivered && (
                       <span className="flex items-center gap-1 text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-semibold animate-pulse">
-                        <AlertTriangle className="w-3 h-3" /> Alerta: Estás
-                        perdiendo dinero
+                        <AlertTriangle className="w-3 h-3" /> Alerta: Estás perdiendo dinero
                       </span>
                     )}
                   </div>
@@ -223,8 +191,7 @@ export default function WorkshopKanban({
                     </span>
                     {deliveredDate && (
                       <span className="flex items-center gap-1 text-emerald-400">
-                        <CheckCircle2 className="w-3 h-3" /> Entregado:{' '}
-                        {deliveredDate}
+                        <CheckCircle2 className="w-3 h-3" /> Entregado: {deliveredDate}
                       </span>
                     )}
                   </div>
@@ -245,7 +212,6 @@ export default function WorkshopKanban({
                     </select>
                   </div>
 
-                  {/* BLOQUE FINANCIERO CON ANTICIPO Y RESTANTE */}
                   <div
                     className={`p-3 rounded-xl border text-xs space-y-2.5 ${
                       isLoss
@@ -255,49 +221,31 @@ export default function WorkshopKanban({
                   >
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <span className="text-slate-500 block text-[9px] mb-0.5">
-                          Refacción
-                        </span>
+                        <span className="text-slate-500 block text-[9px] mb-0.5">Refacción</span>
                         <input
                           type="number"
                           defaultValue={item.partCost}
-                          onBlur={(e) =>
-                            handleUpdatePartCost(
-                              item.id,
-                              Number(e.target.value)
-                            )
-                          }
+                          onBlur={(e) => handleUpdatePartCost(item.id, Number(e.target.value))}
                           className="w-full bg-slate-950 border border-white/10 rounded-lg px-1 py-1 text-white text-center font-semibold text-xs"
                           placeholder="$0"
                         />
                       </div>
                       <div>
-                        <span className="text-cyan-400 block text-[9px] mb-0.5 font-medium">
-                          Cotizado
-                        </span>
+                        <span className="text-cyan-400 block text-[9px] mb-0.5 font-medium">Cotizado</span>
                         <input
                           type="number"
                           defaultValue={item.repairPrice}
-                          onBlur={(e) =>
-                            handleUpdateRepairPrice(
-                              item.id,
-                              Number(e.target.value)
-                            )
-                          }
+                          onBlur={(e) => handleUpdateRepairPrice(item.id, Number(e.target.value))}
                           className="w-full bg-slate-950 border border-cyan-500/30 rounded-lg px-1 py-1 text-cyan-300 text-center font-semibold text-xs"
                           placeholder="$0"
                         />
                       </div>
                       <div>
-                        <span className="text-emerald-400 block text-[9px] mb-0.5 font-medium">
-                          Anticipo
-                        </span>
+                        <span className="text-emerald-400 block text-[9px] mb-0.5 font-medium">Anticipo</span>
                         <input
                           type="number"
                           defaultValue={item.advancePayment}
-                          onBlur={(e) =>
-                            handleUpdateAdvance(item.id, Number(e.target.value))
-                          }
+                          onBlur={(e) => handleUpdateAdvance(item.id, Number(e.target.value))}
                           className="w-full bg-slate-950 border border-emerald-500/30 rounded-lg px-1 py-1 text-emerald-300 text-center font-semibold text-xs"
                           placeholder="$0"
                         />
@@ -305,12 +253,8 @@ export default function WorkshopKanban({
                     </div>
 
                     <div className="flex justify-between items-center pt-2 border-t border-white/5 text-[11px]">
-                      <span className="text-amber-400 font-medium">
-                        Resta por cobrar:
-                      </span>
-                      <span className="font-bold text-amber-300">
-                        ${remainingBalance}
-                      </span>
+                      <span className="text-amber-400 font-medium">Resta por cobrar:</span>
+                      <span className="font-bold text-amber-300">${remainingBalance}</span>
                     </div>
 
                     <div className="flex justify-between items-center pt-1 border-t border-white/5">
@@ -329,17 +273,7 @@ export default function WorkshopKanban({
                     <button
                       onClick={() => {
                         const cleanPhone = item.phone.replace(/\D/g, '');
-                        const msg = `📋 *COTIZACIÓN DE SERVICIO - TECHCORE* \n\n¡Hola ${
-                          item.client
-                        }! 👋 Te enviamos el presupuesto:\n\n• *Folio:* ${
-                          item.folio
-                        }\n• *Equipo:* ${item.model}\n• *Diagnóstico:* ${
-                          item.issue
-                        }\n\n💰 *Total:* $${item.repairPrice}\n${
-                          item.advancePayment > 0
-                            ? `💵 *Anticipo:* $${item.advancePayment}\n⏳ *Resta:* $${remainingBalance}\n`
-                            : ''
-                        }\n¿Deseamos proceder? Quedamos a tus órdenes. 🛠️`;
+                        const msg = `📋 *COTIZACIÓN DE SERVICIO - TECHCORE* \n\n¡Hola ${item.client}! 👋 Te enviamos el presupuesto:\n\n• *Folio:* ${item.folio}\n• *Equipo:* ${item.model}\n• *Diagnóstico:* ${item.issue}\n\n💰 *Total:* $${item.repairPrice}\n${item.advancePayment > 0 ? `💵 *Anticipo:* $${item.advancePayment}\n⏳ *Resta:* $${remainingBalance}\n` : ''}\n¿Deseamos proceder? Quedamos a tus órdenes. 🛠️`;
                         window.open(
                           `https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(
                             msg
@@ -349,8 +283,7 @@ export default function WorkshopKanban({
                       }}
                       className="w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5"
                     >
-                      <FileText className="w-3.5 h-3.5" /> Cotización por
-                      WhatsApp
+                      <FileText className="w-3.5 h-3.5" /> Cotización por WhatsApp
                     </button>
                   )}
 
@@ -358,19 +291,7 @@ export default function WorkshopKanban({
                     <button
                       onClick={() => {
                         const cleanPhone = item.phone.replace(/\D/g, '');
-                        const msg = `¡Hola ${
-                          item.client
-                        }! 👋 Te saludamos de *TechCore*. Tu equipo *${
-                          item.model
-                        }* (Folio: ${
-                          item.folio
-                        }) ya está reparado y listo para entregarse.\n\n💰 *Total a pagar:* $${
-                          item.repairPrice
-                        }\n${
-                          item.advancePayment > 0
-                            ? `💵 *Anticipo dado:* $${item.advancePayment}\n✨ *Resta por liquidar:* $${remainingBalance}\n`
-                            : ''
-                        }\n¡Te esperamos! 🛠️`;
+                        const msg = `¡Hola ${item.client}! 👋 Te saludamos de *TechCore*. Tu equipo *${item.model}* (Folio: ${item.folio}) ya está reparado y listo para entregarse.\n\n💰 *Total a pagar:* $${item.repairPrice}\n${item.advancePayment > 0 ? `💵 *Anticipo dado:* $${item.advancePayment}\n✨ *Resta por liquidar:* $${remainingBalance}\n` : ''}\n¡Te esperamos! 🛠️`;
                         window.open(
                           `https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(
                             msg
@@ -380,8 +301,7 @@ export default function WorkshopKanban({
                       }}
                       className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 animate-pulse"
                     >
-                      <Send className="w-3.5 h-3.5" /> ¡Avisar que ya está
-                      listo!
+                      <Send className="w-3.5 h-3.5" /> ¡Avisar que ya está listo!
                     </button>
                   )}
 
@@ -399,8 +319,7 @@ export default function WorkshopKanban({
                       }}
                       className="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 text-xs font-semibold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5"
                     >
-                      <ShieldCheck className="w-3.5 h-3.5" /> Seguimiento /
-                      Garantía Ws
+                      <ShieldCheck className="w-3.5 h-3.5" /> Seguimiento / Garantía Ws
                     </button>
                   )}
 
@@ -409,6 +328,7 @@ export default function WorkshopKanban({
                       Equipo en banco de trabajo...
                     </div>
                   )}
+
                 </div>
               </div>
             );
