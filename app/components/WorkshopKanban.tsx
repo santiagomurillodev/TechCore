@@ -2,17 +2,19 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Clock, DollarSign, Send, FileText, AlertTriangle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, ShieldCheck, CheckCircle2, Trash2, FileText, Send, AlertTriangle } from 'lucide-react';
 import { supabase } from './supabase';
 
 interface WorkshopProps {
   repairs: any[];
   onUpdateStatus: (id: string, status: string) => void;
+  onDeleteRepair?: (id: string) => void;
 }
 
 export default function WorkshopKanban({
   repairs,
   onUpdateStatus,
+  onDeleteRepair,
 }: WorkshopProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('todos');
@@ -46,85 +48,116 @@ export default function WorkshopKanban({
     await supabase.from('repairs').update({ advance_payment: advance }).eq('id', id);
   };
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm('¿Eliminar este registro? Esta acción es irreversible.')) {
+      const { error } = await supabase.from('repairs').delete().eq('id', id);
+      if (!error) {
+        if (onDeleteRepair) onDeleteRepair(id);
+      } else {
+        alert('Hubo un error al eliminar el registro.');
+        console.error(error);
+      }
+    }
+  };
+
+  const filterOptions = [
+    { id: 'todos', label: 'Activos' },
+    { id: 'por_revisar', label: 'Por Revisar' },
+    { id: 'en_proceso', label: 'En Proceso' },
+    { id: 'esperando_pieza', label: 'Espera Pieza' },
+    { id: 'listo', label: 'Listos' },
+    { id: 'entregado', label: 'Entregados' }
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-5 sm:space-y-6 max-w-4xl mx-auto px-2 sm:px-0"
+      className="w-full font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif] space-y-6 pb-10"
     >
-      {/* Encabezado Responsivo */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 sm:p-6 rounded-3xl gap-4 shadow-xl">
+      {/* HEADER */}
+      <div className="px-2 pt-2 pb-4 flex justify-between items-end border-b border-[#1C1C1E]">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Panel del Taller
-          </h2>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1">
-            {repairs.filter(r => r.status !== 'entregado').length} equipos activos en proceso
+          <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase block mb-1">
+            Ganancia Neta (Taller)
+          </label>
+          <p className="text-4xl font-bold text-white tracking-tight">
+            ${totalRealProfit}.<span className="text-xl text-[#8E8E93]">00</span>
           </p>
         </div>
-        <div className="w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5 text-left sm:text-right">
-          <p
-            className={`text-3xl font-black flex items-center gap-1 tracking-tight ${
-              totalRealProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
-            }`}
-          >
-            <DollarSign className="w-6 h-6 sm:w-5 sm:h-5" />
-            {totalRealProfit}.00
-          </p>
-          <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mt-1">
-            Ganancia Neta Total (Historial Incluido)
+        <div className="text-right pb-1">
+          <p className="text-[13px] font-medium text-[#8E8E93]">
+            {repairs.filter(r => r.status !== 'entregado').length} activos
           </p>
         </div>
       </div>
 
-      {/* Buscador y Filtros adaptados a Touch */}
+      {/* BUSCADOR Y FILTROS */}
       <div className="space-y-4">
+        {/* Barra de Búsqueda (Ocupa el 100% del ancho) */}
         <div className="relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 sm:w-4 sm:h-4 text-slate-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8E8E93]" />
           <input
             type="text"
             placeholder="Buscar por folio o cliente..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 sm:py-3 bg-slate-950/80 border border-white/10 rounded-xl text-sm sm:text-base text-white focus:border-blue-500 focus:outline-none transition-all"
+            className="w-full pl-12 pr-5 py-4 bg-[#1C1C1E] rounded-[18px] text-[16px] text-white placeholder:text-[#8E8E93] focus:outline-none transition-all"
           />
         </div>
 
-        {/* Contenedor de filtros con scroll horizontal oculto en móvil */}
-        <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-2 -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap">
-          {[
-            { id: 'todos', label: 'Activos' },
-            { id: 'por_revisar', label: 'Por Revisar' },
-            { id: 'en_proceso', label: 'En Proceso' },
-            { id: 'esperando_pieza', label: 'Esperando Pieza' },
-            { id: 'listo', label: 'Listos' },
-            { id: 'entregado', label: '📦 Entregados' }
-          ].map(filter => (
-            <button
-              key={filter.id}
-              onClick={() => setSelectedFilter(filter.id)}
-              className={`whitespace-nowrap px-4 py-2 sm:px-3.5 sm:py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all border ${
-                selectedFilter === filter.id 
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.15)]' 
-                  : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-800'
-              }`}
+        {/* Filtros Responsivos */}
+        <div className="pt-1">
+          {/* Select nativo para Móvil */}
+          <div className="sm:hidden relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Filter className="h-4 w-4 text-white" />
+            </div>
+            <select
+              value={selectedFilter}
+              onChange={(e) => setSelectedFilter(e.target.value)}
+              className="w-full bg-white text-black text-[16px] font-bold rounded-[16px] pl-10 pr-4 py-3.5 focus:outline-none appearance-none"
             >
-              {filter.label}
-            </button>
-          ))}
+              {filterOptions.map(filter => (
+                <option key={filter.id} value={filter.id}>
+                  {filter.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Grid de 6 columnas para PC (alineado perfectamente al ancho de la barra de búsqueda) */}
+          <div className="hidden sm:grid grid-cols-6 gap-2.5 w-full">
+            {filterOptions.map(filter => {
+              const isActive = selectedFilter === filter.id;
+              return (
+                <button
+                  key={filter.id}
+                  onClick={() => setSelectedFilter(filter.id)}
+                  className={`py-3 rounded-[14px] text-[13px] font-medium transition-all text-center truncate px-2 ${
+                    isActive 
+                      ? 'bg-white text-black font-bold shadow-md' 
+                      : 'bg-[#1C1C1E] text-[#8E8E93] hover:bg-[#2C2C2E] hover:text-white'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Grid de Reparaciones */}
-      <div className="space-y-4">
+      {/* GRID DE REPARACIONES */}
+      <div className="space-y-5">
         {filteredRepairs.length === 0 ? (
-          <div className="text-center py-16 bg-slate-900/30 border border-white/5 rounded-3xl text-slate-500 backdrop-blur-sm">
+          <div className="text-center py-16 text-[#8E8E93] font-medium text-[15px]">
             No hay equipos en esta categoría.
           </div>
         ) : (
           filteredRepairs.map((item) => {
-            const formattedDate = item.created_at ? new Date(item.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
-            const deliveredDate = item.delivered_at ? new Date(item.delivered_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
+            const formattedDate = item.created_at ? new Date(item.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '';
+            const deliveredDate = item.delivered_at ? new Date(item.delivered_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : null;
 
             const partCost = Number(item.partCost) || 0;
             const repairPrice = Number(item.repairPrice) || 0;
@@ -140,196 +173,173 @@ export default function WorkshopKanban({
             return (
               <div
                 key={item.id}
-                className={`bg-slate-950/60 backdrop-blur-md border p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row justify-between gap-5 shadow-lg transition-colors ${
-                  isDelivered
-                    ? 'border-emerald-500/20 bg-emerald-950/5'
-                    : isLoss
-                    ? 'border-red-500/40 bg-red-950/10'
-                    : 'border-white/5'
-                }`}
+                className="bg-[#1C1C1E] rounded-[24px] overflow-hidden flex flex-col md:flex-row relative"
               >
-                {/* Columna Izquierda: Info del Equipo */}
-                <div className="flex-1 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] sm:text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">
-                      {item.folio}
-                    </span>
-                    <h3 className="font-bold text-white text-base sm:text-lg">
-                      {item.model}
-                    </h3>
-                    {isDelivered && (
-                      <span className="flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold mt-1 sm:mt-0">
-                        <ShieldCheck className="w-3 h-3" /> Entregado
+                {/* Indicadores de estado visuales */}
+                {isDelivered && <div className="absolute top-0 left-0 w-full h-1 md:w-1.5 md:h-full bg-[#8E8E93] z-10"></div>}
+                {isLoss && !isDelivered && <div className="absolute top-0 left-0 w-full h-1 md:w-1.5 md:h-full bg-[#FA233B] z-10"></div>}
+                {isReadyStage && <div className="absolute top-0 left-0 w-full h-1 md:w-1.5 md:h-full bg-white z-10"></div>}
+
+                {/* COLUMNA IZQUIERDA: Info Técnica */}
+                <div className="p-5 sm:p-6 flex-1 space-y-5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[11px] font-bold tracking-[0.15em] text-[#8E8E93] uppercase block mb-1">
+                        {item.folio} • {formattedDate}
                       </span>
-                    )}
-                    {isLoss && !isDelivered && (
-                      <span className="flex items-center gap-1 text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-semibold animate-pulse mt-1 sm:mt-0">
-                        <AlertTriangle className="w-3 h-3" /> Pérdida
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
-                    <p className="text-sm text-slate-300 leading-relaxed">
-                      <strong className="text-slate-500">Falla:</strong> {item.issue}
-                    </p>
+                      <h3 className={`font-bold text-[20px] leading-tight flex items-center gap-2 ${isDelivered ? 'text-[#8E8E93]' : 'text-white'}`}>
+                        {item.model}
+                        {isLoss && !isDelivered && <AlertTriangle className="w-4 h-4 text-[#FA233B]" />}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="w-8 h-8 flex items-center justify-center bg-[#2C2C2E] hover:bg-[#FA233B] hover:text-white rounded-full text-[#8E8E93] transition-colors active:scale-95"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-400">
-                    <span className="bg-slate-900/80 px-2.5 py-1.5 rounded-md border border-white/5 flex items-center gap-1.5">
-                      👤 {item.client}
-                    </span>
-                    <span className="bg-slate-900/80 px-2.5 py-1.5 rounded-md border border-white/5 flex items-center gap-1.5">
-                      📞 {item.phone}
-                    </span>
+                  <p className="text-[15px] text-[#EBEBF5]/80 leading-relaxed bg-[#000000]/30 p-4 rounded-[16px]">
+                    {item.issue}
+                  </p>
+
+                  <div className="bg-[#2C2C2E] rounded-[16px] overflow-hidden">
+                    <div className="px-4 py-3 flex justify-between items-center">
+                      <span className="text-[#8E8E93] text-[14px]">Cliente</span>
+                      <span className="text-white text-[15px] font-medium truncate ml-4">{item.client}</span>
+                    </div>
+                    <div className="h-[1px] bg-[#48484A] ml-4"></div>
+                    <div className="px-4 py-3 flex justify-between items-center">
+                      <span className="text-[#8E8E93] text-[14px]">Teléfono</span>
+                      <span className="text-white text-[15px] font-medium">{item.phone}</span>
+                    </div>
                     {item.password && (
-                      <span className="bg-amber-500/10 text-amber-400 px-2.5 py-1.5 rounded-md border border-amber-500/20 font-mono">
-                        PIN: {item.password}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1 text-slate-500 w-full sm:w-auto pt-1 sm:pt-0">
-                      <Clock className="w-3 h-3" /> Ingreso: {formattedDate}
-                    </span>
-                    {deliveredDate && (
-                      <span className="flex items-center gap-1 text-emerald-400 w-full sm:w-auto">
-                        <CheckCircle2 className="w-3 h-3" /> Entregado: {deliveredDate}
-                      </span>
+                      <>
+                        <div className="h-[1px] bg-[#48484A] ml-4"></div>
+                        <div className="px-4 py-3 flex justify-between items-center">
+                          <span className="text-[#8E8E93] text-[14px]">PIN / Pass</span>
+                          <span className="text-white text-[15px] font-mono">{item.password}</span>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
 
-                {/* Columna Derecha: Finanzas y Controles */}
-                <div className="flex flex-col gap-4 min-w-[100%] sm:min-w-[260px] border-t border-white/5 md:border-none pt-4 md:pt-0 justify-between">
+                {/* COLUMNA DERECHA: Finanzas y Controles */}
+                <div className="p-5 sm:p-6 w-full md:w-[320px] bg-[#252528] md:border-l border-[#38383A] flex flex-col justify-between gap-5">
                   
-                  <select
-                    value={item.status}
-                    onChange={(e) => onUpdateStatus(item.id, e.target.value)}
-                    className="w-full bg-slate-900 border border-white/10 text-sm sm:text-xs rounded-xl px-4 py-3 sm:py-2.5 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                    <option value="por_revisar">Por Revisar</option>
-                    <option value="en_proceso">En Proceso</option>
-                    <option value="esperando_pieza">Esperando Pieza</option>
-                    <option value="listo">Listo para Entrega</option>
-                    <option value="entregado">Entregado (Archivado)</option>
-                  </select>
+                  {/* Select Nativo iOS */}
+                  <div className="relative">
+                    <select
+                      value={item.status}
+                      onChange={(e) => onUpdateStatus(item.id, e.target.value)}
+                      className="w-full bg-[#1C1C1E] text-white text-[15px] font-bold rounded-[16px] px-4 py-3.5 focus:outline-none appearance-none"
+                    >
+                      <option value="por_revisar">Por Revisar</option>
+                      <option value="en_proceso">En Proceso</option>
+                      <option value="esperando_pieza">Espera Pieza</option>
+                      <option value="listo">Listo para Entrega</option>
+                      <option value="entregado">Entregado (Archivado)</option>
+                    </select>
+                  </div>
 
-                  <div
-                    className={`p-4 sm:p-3 rounded-xl border text-xs space-y-3 sm:space-y-2.5 ${
-                      isLoss
-                        ? 'bg-red-950/30 border-red-500/30'
-                        : 'bg-slate-900/50 border-white/5'
-                    }`}
-                  >
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-slate-500 block text-[10px] sm:text-[9px] mb-1 sm:mb-0.5">Refacción</span>
+                  {/* Finanzas */}
+                  <div className="space-y-4">
+                    <div className="bg-[#1C1C1E] rounded-[16px] overflow-hidden grid grid-cols-3 divide-x divide-[#48484A]">
+                      <div className="py-3 flex flex-col items-center">
+                        <label className="text-[9px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Pieza</label>
                         <input
                           type="number"
                           defaultValue={item.partCost}
                           onBlur={(e) => handleUpdatePartCost(item.id, Number(e.target.value))}
-                          className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-2 sm:px-1 sm:py-1 text-white text-center font-semibold text-xs focus:border-blue-500 focus:outline-none"
-                          placeholder="$0"
+                          className="w-full bg-transparent text-center text-white text-[15px] font-semibold focus:outline-none"
                         />
                       </div>
-                      <div>
-                        <span className="text-cyan-400 block text-[10px] sm:text-[9px] mb-1 sm:mb-0.5 font-medium">Cotizado</span>
+                      <div className="py-3 flex flex-col items-center">
+                        <label className="text-[9px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Cotizado</label>
                         <input
                           type="number"
                           defaultValue={item.repairPrice}
                           onBlur={(e) => handleUpdateRepairPrice(item.id, Number(e.target.value))}
-                          className="w-full bg-slate-950 border border-cyan-500/30 rounded-lg px-2 py-2 sm:px-1 sm:py-1 text-cyan-300 text-center font-semibold text-xs focus:border-cyan-500 focus:outline-none"
-                          placeholder="$0"
+                          className="w-full bg-transparent text-center text-white text-[15px] font-semibold focus:outline-none"
                         />
                       </div>
-                      <div>
-                        <span className="text-emerald-400 block text-[10px] sm:text-[9px] mb-1 sm:mb-0.5 font-medium">Anticipo</span>
+                      <div className="py-3 flex flex-col items-center">
+                        <label className="text-[9px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Anticipo</label>
                         <input
                           type="number"
                           defaultValue={item.advancePayment}
                           onBlur={(e) => handleUpdateAdvance(item.id, Number(e.target.value))}
-                          className="w-full bg-slate-950 border border-emerald-500/30 rounded-lg px-2 py-2 sm:px-1 sm:py-1 text-emerald-300 text-center font-semibold text-xs focus:border-emerald-500 focus:outline-none"
-                          placeholder="$0"
+                          className="w-full bg-transparent text-center text-white text-[15px] font-semibold focus:outline-none"
                         />
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-3 sm:pt-2 border-t border-white/5 text-[11px] sm:text-[11px]">
-                      <span className="text-amber-400 font-medium">Resta por cobrar:</span>
-                      <span className="font-bold text-amber-300 text-sm sm:text-xs">${remainingBalance}</span>
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[12px] font-medium text-[#8E8E93]">Resta por cobrar</span>
+                      <span className="font-bold text-[16px] text-white">${remainingBalance}</span>
                     </div>
-
-                    <div className="flex justify-between items-center pt-1 border-t border-white/5">
-                      <span className="text-slate-400">Ganancia Neta:</span>
-                      <span
-                        className={`font-black text-sm sm:text-xs ${
-                          isLoss ? 'text-red-400' : 'text-emerald-400'
-                        }`}
-                      >
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[12px] font-medium text-[#8E8E93]">Ganancia Neta</span>
+                      <span className={`font-bold text-[16px] ${isLoss ? 'text-[#FA233B]' : 'text-white'}`}>
                         ${profit}
                       </span>
                     </div>
                   </div>
 
-                  {/* Botones de Acción Wpp (Más amplios para touch) */}
-                  {isEarlyStage && (
-                    <button
-                      onClick={() => {
-                        const cleanPhone = item.phone.replace(/\D/g, '');
-                        const msg = `📋 *COTIZACIÓN DE SERVICIO - TECHCORE* \n\n¡Hola ${item.client}! 👋 Te enviamos el presupuesto:\n\n• *Folio:* ${item.folio}\n• *Equipo:* ${item.model}\n• *Diagnóstico:* ${item.issue}\n\n💰 *Total:* $${item.repairPrice}\n${item.advancePayment > 0 ? `💵 *Anticipo:* $${item.advancePayment}\n⏳ *Resta:* $${remainingBalance}\n` : ''}\n¿Deseamos proceder? Quedamos a tus órdenes. 🛠️`;
-                        window.open(
-                          `https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(
-                            msg
-                          )}`,
-                          '_blank'
-                        );
-                      }}
-                      className="w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs sm:text-xs font-semibold py-3.5 sm:py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                    >
-                      <FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> Cotización por WhatsApp
-                    </button>
-                  )}
+                  {/* Acciones */}
+                  <div className="pt-2">
+                    {isEarlyStage && (
+                      <button
+                        onClick={() => {
+                          const cleanPhone = item.phone.replace(/\D/g, '');
+                          const msg = `📋 *COTIZACIÓN DE SERVICIO - TECHCORE* \n\n¡Hola ${item.client}! 👋 Te enviamos el presupuesto:\n\n• *Folio:* ${item.folio}\n• *Equipo:* ${item.model}\n• *Diagnóstico:* ${item.issue}\n\n💰 *Total:* $${item.repairPrice}\n${item.advancePayment > 0 ? `💵 *Anticipo:* $${item.advancePayment}\n⏳ *Resta:* $${remainingBalance}\n` : ''}\n¿Deseamos proceder? Quedamos a tus órdenes. 🛠️`;
+                          window.open(`https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="w-full bg-white text-black py-4 rounded-[16px] text-[15px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+                      >
+                        <FileText className="w-4 h-4" strokeWidth={2.5} /> Enviar Cotización
+                      </button>
+                    )}
 
-                  {isReadyStage && (
-                    <button
-                      onClick={() => {
-                        const cleanPhone = item.phone.replace(/\D/g, '');
-                        const msg = `¡Hola ${item.client}! 👋 Te saludamos de *TechCore*. Tu equipo *${item.model}* (Folio: ${item.folio}) ya está reparado y listo para entregarse.\n\n💰 *Total a pagar:* $${item.repairPrice}\n${item.advancePayment > 0 ? `💵 *Anticipo dado:* $${item.advancePayment}\n✨ *Resta por liquidar:* $${remainingBalance}\n` : ''}\n¡Te esperamos! 🛠️`;
-                        window.open(
-                          `https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(
-                            msg
-                          )}`,
-                          '_blank'
-                        );
-                      }}
-                      className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs sm:text-xs font-semibold py-3.5 sm:py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 animate-pulse active:scale-[0.98]"
-                    >
-                      <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> ¡Avisar que ya está listo!
-                    </button>
-                  )}
+                    {isReadyStage && (
+                      <button
+                        onClick={() => {
+                          const cleanPhone = item.phone.replace(/\D/g, '');
+                          const msg = `¡Hola ${item.client}! 👋 Te saludamos de *TechCore*. Tu equipo *${item.model}* (Folio: ${item.folio}) ya está reparado y listo para entregarse.\n\n💰 *Total a pagar:* $${item.repairPrice}\n${item.advancePayment > 0 ? `💵 *Anticipo dado:* $${item.advancePayment}\n✨ *Resta por liquidar:* $${remainingBalance}\n` : ''}\n¡Te esperamos! 🛠️`;
+                          window.open(`https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="w-full bg-white text-black py-4 rounded-[16px] text-[15px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+                      >
+                        <Send className="w-4 h-4" strokeWidth={2.5} /> Avisar Entrega
+                      </button>
+                    )}
 
-                  {isDelivered && (
-                    <button
-                      onClick={() => {
-                        const cleanPhone = item.phone.replace(/\D/g, '');
-                        const msg = `¡Hola ${item.client}! 👋 Te saludamos de *TechCore*. Seguimiento a tu equipo *${item.model}* (Folio: ${item.folio}). ¿Todo funciona perfectamente o requieres apoyo con tu garantía? 🤝`;
-                        window.open(
-                          `https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(
-                            msg
-                          )}`,
-                          '_blank'
-                        );
-                      }}
-                      className="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 text-xs sm:text-xs font-semibold py-3.5 sm:py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                    >
-                      <ShieldCheck className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> Seguimiento / Garantía Ws
-                    </button>
-                  )}
+                    {isDelivered && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-[#8E8E93] text-[13px] font-medium justify-center bg-[#1C1C1E] py-2.5 rounded-[12px]">
+                          <CheckCircle2 className="w-4 h-4" /> Entregado el {deliveredDate}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const cleanPhone = item.phone.replace(/\D/g, '');
+                            const msg = `¡Hola ${item.client}! 👋 Te saludamos de *TechCore*. Seguimiento a tu equipo *${item.model}* (Folio: ${item.folio}). ¿Todo funciona perfectamente o requieres apoyo con tu garantía? 🤝`;
+                            window.open(`https://api.whatsapp.com/send?phone=52${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+                          }}
+                          className="w-full bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white py-4 rounded-[16px] text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        >
+                          <ShieldCheck className="w-4 h-4" strokeWidth={2} /> Seguimiento Ws
+                        </button>
+                      </div>
+                    )}
 
-                  {!isEarlyStage && !isReadyStage && !isDelivered && (
-                    <div className="text-center py-2 text-[11px] text-slate-500 italic bg-slate-900/40 rounded-xl">
-                      Equipo en banco de trabajo...
-                    </div>
-                  )}
+                    {!isEarlyStage && !isReadyStage && !isDelivered && (
+                      <div className="text-center py-4 text-[14px] text-[#8E8E93] font-medium bg-[#1C1C1E] rounded-[16px]">
+                        Equipo en proceso...
+                      </div>
+                    )}
+                  </div>
 
                 </div>
               </div>

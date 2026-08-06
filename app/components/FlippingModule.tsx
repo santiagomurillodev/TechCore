@@ -70,7 +70,7 @@ export default function FlippingModule({
   const handleDelete = async (id: string) => {
     if (
       window.confirm(
-        '¿Estás seguro de que deseas eliminar este artículo? Esta acción no se puede deshacer.'
+        '¿Seguro que deseas eliminar este artículo? Esta acción es irreversible.'
       )
     ) {
       const { error } = await supabase
@@ -82,9 +82,7 @@ export default function FlippingModule({
         if (onDeleteItem) {
           onDeleteItem(id);
         } else {
-          alert(
-            'Artículo eliminado de la base de datos. Recarga la página para ver los cambios.'
-          );
+          alert('Artículo eliminado. Recarga la página.');
         }
       } else {
         alert('Hubo un error al eliminar el artículo.');
@@ -109,95 +107,104 @@ export default function FlippingModule({
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(descriptionText);
-    alert('¡Descripción copiada! Lista para pegar en Facebook Marketplace.');
+    alert('¡Descripción copiada! Lista para pegar en Marketplace.');
   };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-5 sm:space-y-6 max-w-4xl mx-auto relative px-2 sm:px-0"
+      className="w-full font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif] space-y-6 pb-10"
     >
-      {/* Encabezado Responsivo */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 sm:p-6 rounded-3xl shadow-xl gap-4">
+      {/* HEADER: Ganancias tipo Apple Wallet */}
+      <div className="px-2 pt-2 pb-4 flex justify-between items-end border-b border-[#1C1C1E]">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" /> Marketplace
-          </h2>
-        </div>
-        <div className="w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5 text-left sm:text-right">
-          <p className="text-3xl font-black text-emerald-400 tracking-tight">
-            ${totalFlippingProfit}.00
-          </p>
-          <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mt-1">
-            Ganancia Neta (Artículos Vendidos)
+          <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase block mb-1">
+            Ganancia Neta
+          </label>
+          <p className="text-4xl font-bold text-white tracking-tight">
+            ${totalFlippingProfit}.<span className="text-xl text-[#8E8E93]">00</span>
           </p>
         </div>
       </div>
 
-      {/* Botón / Formulario */}
+      {/* BOTÓN / FORMULARIO (Estilo Inset Grouped) */}
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
-          className="w-full py-4 sm:py-5 border border-dashed border-slate-600 rounded-2xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-white transition-all flex justify-center items-center gap-2 active:scale-[0.98]"
+          className="w-full bg-[#1C1C1E] text-white flex items-center justify-center gap-2 py-4 rounded-[18px] hover:bg-[#2C2C2E] active:scale-95 transition-all"
         >
-          <Plus className="w-5 h-5" /> Registrar Nueva Inversión
+          <Plus className="w-5 h-5" strokeWidth={2.5} />
+          <span className="font-bold text-[17px] tracking-tight">Nueva Inversión</span>
         </button>
       ) : (
-        <form
+        <motion.form
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
           onSubmit={handleSubmit}
-          className="bg-slate-900/80 border border-blue-500/30 p-4 sm:p-6 rounded-2xl space-y-4"
+          className="space-y-4"
         >
-          <input
-            type="text"
-            placeholder="Equipo (Ej. iPhone 13, Nintendo Switch)"
-            required
-            value={formData.item}
-            onChange={(e) => setFormData({ ...formData, item: e.target.value })}
-            className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <input
-              type="number"
-              placeholder="Costo Compra ($)"
-              required
-              value={formData.buyPrice}
-              onChange={(e) =>
-                setFormData({ ...formData, buyPrice: e.target.value })
-              }
-              className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
-            />
-            <input
-              type="number"
-              placeholder="Precio Venta Estimado ($)"
-              required
-              value={formData.sellPrice}
-              onChange={(e) =>
-                setFormData({ ...formData, sellPrice: e.target.value })
-              }
-              className="w-full px-4 py-3.5 bg-slate-950/80 border border-emerald-500/30 rounded-xl text-sm text-emerald-400 focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-emerald-700/50"
-            />
+          <div className="space-y-2.5">
+            <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block">
+              Datos de Inversión
+            </label>
+            
+            <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden">
+              <input
+                type="text"
+                placeholder="Equipo (Ej. iPhone 13, Nintendo Switch)"
+                required
+                value={formData.item}
+                onChange={(e) => setFormData({ ...formData, item: e.target.value })}
+                className="w-full bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors"
+              />
+              
+              <div className="h-[1px] bg-[#48484A] ml-5"></div>
+              
+              <div className="flex">
+                <input
+                  type="number"
+                  placeholder="Costo ($)"
+                  required
+                  value={formData.buyPrice}
+                  onChange={(e) => setFormData({ ...formData, buyPrice: e.target.value })}
+                  className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors text-center"
+                />
+                
+                <div className="w-[1px] bg-[#48484A] my-3 shrink-0"></div>
+                
+                <input
+                  type="number"
+                  placeholder="Venta ($)"
+                  required
+                  value={formData.sellPrice}
+                  onChange={(e) => setFormData({ ...formData, sellPrice: e.target.value })}
+                  className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors text-center font-bold"
+                />
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2 sm:gap-3 pt-2">
+
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="flex-1 py-3.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 active:scale-[0.98] transition-all font-medium"
+              className="flex-1 py-4 rounded-[18px] bg-[#2C2C2E] text-white hover:bg-[#3C3C3E] active:scale-[0.98] transition-all font-semibold text-[16px]"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
+              className="flex-1 py-4 rounded-[18px] bg-white text-black font-bold hover:bg-gray-200 active:scale-[0.98] transition-all text-[16px]"
             >
-              Guardar Inversión
+              Guardar
             </button>
           </div>
-        </form>
+        </motion.form>
       )}
 
-      {/* Grid de Artículos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* LISTADO DE INVENTARIO */}
+      <div className="space-y-4">
         {items.map((item) => {
           const isSold = item.status === 'vendido';
           const totalCost = item.buyPrice + (Number(item.repairCost) || 0);
@@ -206,129 +213,121 @@ export default function FlippingModule({
           return (
             <div
               key={item.id}
-              className={`bg-slate-950/60 backdrop-blur-md border p-4 sm:p-5 rounded-2xl flex flex-col justify-between shadow-lg transition-colors ${
-                isSold
-                  ? 'border-emerald-500/30 bg-emerald-950/10'
-                  : 'border-white/5'
-              }`}
+              className="bg-[#1C1C1E] p-5 rounded-[18px] flex flex-col justify-between relative overflow-hidden"
             >
-              {/* Controles de Tarjeta (Apilados en móvil, en línea en PC) */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
-                <div className="w-full sm:w-auto pr-0 sm:pr-2">
-                  <h3 className="font-bold text-white text-base sm:text-lg leading-tight truncate">
-                    {item.item}
-                  </h3>
-                </div>
+              {/* Indicador sutil si está vendido */}
+              {isSold && <div className="absolute top-0 left-0 w-1.5 h-full bg-white"></div>}
+
+              {/* Cabecera de la Tarjeta */}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className={`font-bold text-[18px] truncate pr-4 ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
+                  {item.item}
+                </h3>
                 
-                <div className="flex w-full sm:w-auto justify-between sm:justify-end items-center gap-2 bg-slate-900/40 sm:bg-transparent p-1.5 sm:p-0 rounded-xl">
-                  <select
-                    value={item.status}
-                    onChange={(e) => onUpdateStatus(item.id, e.target.value)}
-                    className={`flex-1 sm:flex-none text-xs rounded-lg px-2.5 py-2 font-medium border focus:outline-none transition-colors ${
-                      isSold
-                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
-                        : 'bg-slate-900 border-white/10 text-white'
-                    }`}
-                  >
-                    <option value="en_reparacion">En Reparación</option>
-                    <option value="en_venta">En Venta</option>
-                    <option value="vendido">Vendido</option>
-                  </select>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-2 text-slate-500 hover:text-red-400 bg-slate-900 sm:bg-transparent rounded-lg border border-white/5 sm:border-none transition-all active:scale-95"
-                    title="Eliminar artículo"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {/* Select Nativo iOS style */}
+                <select
+                  value={item.status}
+                  onChange={(e) => onUpdateStatus(item.id, e.target.value)}
+                  className={`bg-transparent text-[14px] font-semibold text-right focus:outline-none appearance-none ${
+                    isSold ? 'text-white' : 'text-[#8E8E93]'
+                  }`}
+                  style={{ WebkitAppearance: 'none' }}
+                >
+                  <option value="en_reparacion">En Reparación</option>
+                  <option value="en_venta">En Venta</option>
+                  <option value="vendido">✓ Vendido</option>
+                </select>
               </div>
 
-              {/* Estadísticas */}
-              <div className="grid grid-cols-3 gap-1 sm:gap-2 text-[10px] sm:text-xs bg-slate-900/50 p-2.5 sm:p-3 rounded-xl border border-white/5 text-center mb-4">
-                <div>
-                  <p className="text-slate-500 mb-0.5">Inversión</p>
-                  <p className="font-bold text-slate-300 text-xs sm:text-sm">
-                    ${totalCost}
-                  </p>
+              {/* Estadísticas de la Inversión (Estilo Inset horizontal) */}
+              <div className="flex items-center border-y border-[#38383A] py-3 mb-4">
+                <div className="flex-1 text-center">
+                  <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Costo</p>
+                  <p className="font-semibold text-white text-[15px]">${totalCost}</p>
                 </div>
-                <div className="border-x border-white/5">
-                  <p className="text-slate-500 mb-0.5">Venta</p>
-                  <p className="font-bold text-white text-xs sm:text-sm">
-                    ${item.sellPrice}
-                  </p>
+                
+                <div className="w-[1px] h-8 bg-[#38383A]"></div>
+                
+                <div className="flex-1 text-center">
+                  <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Venta</p>
+                  <p className="font-semibold text-white text-[15px]">${item.sellPrice}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500 mb-0.5">
+                
+                <div className="w-[1px] h-8 bg-[#38383A]"></div>
+                
+                <div className="flex-1 text-center">
+                  <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">
                     {isSold ? 'Ganancia' : 'Proyectado'}
                   </p>
-                  <p
-                    className={`font-bold text-xs sm:text-sm ${
-                      isSold ? 'text-emerald-400' : 'text-blue-400'
-                    }`}
-                  >
+                  <p className="font-bold text-white text-[15px]">
                     ${profit}
                   </p>
                 </div>
               </div>
 
-              {/* Botón Redactar */}
-              <button
-                onClick={() => openEditor(item)}
-                className="w-full py-3 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-xl text-xs sm:text-sm font-semibold transition-colors border border-white/5 flex items-center justify-center gap-2 active:scale-[0.98]"
-              >
-                <Tag className="w-3.5 h-3.5" /> Redactar Publicación
-              </button>
+              {/* Controles: Redactar y Eliminar */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openEditor(item)}
+                  className="flex-1 py-3.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[14px] text-[15px] font-semibold transition-colors flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <Tag className="w-4 h-4" /> Redactar
+                </button>
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="w-14 flex items-center justify-center bg-[#2C2C2E] hover:bg-[#3C3C3E] text-[#8E8E93] hover:text-white rounded-[14px] transition-colors active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* MODAL DEL EDITOR DE PUBLICACIÓN (Adaptado a móvil) */}
+      {/* MODAL DEL EDITOR DE PUBLICACIÓN (Estilo Apple Modal) */}
       <AnimatePresence>
         {selectedItem && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 pb-20 sm:pb-4">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 pb-0 sm:pb-4">
             <motion.div
-              initial={{ opacity: 0, y: 100 }}
+              initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              className="bg-slate-900 border-t sm:border border-white/10 w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto"
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-[#1C1C1E] w-full max-w-lg rounded-t-[32px] sm:rounded-[24px] shadow-2xl p-6 pt-5 max-h-[90vh] flex flex-col"
             >
+              {/* Pill handler (iOS style) */}
+              <div className="w-12 h-1.5 bg-[#48484A] rounded-full mx-auto mb-4 sm:hidden"></div>
+
               <div className="flex justify-between items-center mb-5">
-                <h3 className="text-lg font-bold text-white">
-                  Editar Publicación
-                </h3>
+                <h3 className="text-xl font-bold text-white">Publicación</h3>
                 <button
                   onClick={() => setSelectedItem(null)}
-                  className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"
+                  className="w-8 h-8 flex items-center justify-center bg-[#2C2C2E] rounded-full text-[#8E8E93] hover:text-white transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4" strokeWidth={2.5} />
                 </button>
               </div>
 
-              <p className="text-xs text-slate-400 mb-3">
-                Prepara tu texto de venta. Lo que guardes aquí se sincronizará
-                en la nube.
-              </p>
               <textarea
                 rows={8}
                 value={descriptionText}
                 onChange={(e) => setDescriptionText(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950 border border-white/10 rounded-xl text-sm text-slate-200 resize-none focus:border-blue-500 focus:outline-none mb-5"
+                className="w-full px-5 py-4 bg-[#0A0A0A] rounded-[18px] text-[16px] text-white resize-none focus:outline-none mb-5 leading-relaxed"
               />
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 mt-auto pb-safe">
                 <button
                   onClick={saveDescription}
-                  className="flex-1 py-3.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs sm:text-sm font-semibold flex justify-center items-center gap-2 active:scale-[0.98]"
+                  className="flex-1 py-4 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[18px] text-[16px] font-semibold flex justify-center items-center gap-2 active:scale-95 transition-all"
                 >
                   <Save className="w-4 h-4" /> Guardar
                 </button>
                 <button
                   onClick={copyToClipboard}
-                  className="flex-1 py-3.5 sm:py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-semibold flex justify-center items-center gap-2 shadow-lg shadow-blue-600/20 active:scale-[0.98]"
+                  className="flex-1 py-4 bg-white text-black rounded-[18px] text-[16px] font-bold flex justify-center items-center gap-2 active:scale-95 transition-all"
                 >
-                  <Copy className="w-4 h-4" /> Copiar Todo
+                  <Copy className="w-4 h-4" strokeWidth={2.5} /> Copiar
                 </button>
               </div>
             </motion.div>

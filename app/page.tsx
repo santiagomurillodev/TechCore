@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ReceptionForm from './components/ReceptionForm';
 import WorkshopKanban from './components/WorkshopKanban';
 import FlippingModule from './components/FlippingModule';
@@ -79,7 +80,6 @@ export default function TechCoreApp() {
     if (newStatus === 'entregado') {
       updateData.delivered_at = new Date().toISOString();
     }
-
     setRepairs(
       repairs.map((r) =>
         r.id === id
@@ -111,98 +111,135 @@ export default function TechCoreApp() {
     setFlippingItems(flippingItems.filter((f) => f.id !== id));
   };
 
+  const handleDeleteRepair = (id: string) => {
+    setRepairs(repairs.filter((r) => r.id !== id));
+  };
+
+  const getPageTitle = () => {
+    if (activeModule === 'recepcion') return 'Recepción';
+    if (activeModule === 'taller') return 'Taller';
+    return 'Mercado';
+  };
+
   return (
-    <main className="min-h-screen bg-[#070B14] text-slate-100 font-sans pb-20 sm:pb-12 relative overflow-hidden selection:bg-blue-500/30">
-      <div className="absolute top-[-15%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <main className="min-h-screen bg-[#000000] text-white font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif] pb-24 selection:bg-white/20">
+      
+      {/* HEADER */}
+      <header className="px-5 sm:px-8 pt-8 sm:pt-12 pb-6 max-w-5xl mx-auto flex justify-between items-end">
+        <h1 className="text-3xl sm:text-[34px] leading-none font-bold tracking-tight text-white">
+          {getPageTitle()}
+        </h1>
+      </header>
 
-      <nav className="fixed bottom-0 sm:bottom-auto sm:top-6 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full sm:w-[95%] sm:max-w-4xl z-50 bg-[#0a0f1a]/90 sm:bg-slate-900/70 backdrop-blur-xl border-t sm:border border-white/10 sm:rounded-full px-2 py-2 sm:py-2 flex justify-between items-center pb-safe">
-        <div className="hidden sm:flex items-center gap-2 pl-4">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg">
-            <Wrench className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-lg font-black tracking-tight text-white">
-            Tech
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-              Core
-            </span>
-          </span>
-        </div>
-
-        <div className="flex justify-around w-full sm:w-auto sm:justify-end gap-1 px-2 sm:px-0 sm:pr-1">
-          <button
-            onClick={() => setActiveModule('recepcion')}
-            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 py-2 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-full text-[10px] sm:text-sm font-semibold transition-all ${
-              activeModule === 'recepcion'
-                ? 'text-blue-400 sm:bg-white/10 sm:text-white sm:border border-white/10'
-                : 'text-slate-500'
-            }`}
-          >
-            <Smartphone className="w-5 h-5 sm:w-4 sm:h-4" />{' '}
-            <span>Recepción</span>
-          </button>
-          <button
-            onClick={() => setActiveModule('taller')}
-            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 py-2 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-full text-[10px] sm:text-sm font-semibold transition-all relative ${
-              activeModule === 'taller'
-                ? 'text-blue-400 sm:bg-white/10 sm:text-white sm:border border-white/10'
-                : 'text-slate-500'
-            }`}
-          >
-            <Wrench className="w-5 h-5 sm:w-4 sm:h-4" /> <span>Taller</span>
-            {repairs.filter((r) => r.status !== 'entregado').length > 0 && (
-              <span className="absolute top-1 right-2 sm:top-auto sm:right-auto sm:relative bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded-full border border-[#0a0f1a] sm:border-none">
-                {repairs.filter((r) => r.status !== 'entregado').length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveModule('flipping')}
-            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 py-2 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-full text-[10px] sm:text-sm font-semibold transition-all ${
-              activeModule === 'flipping'
-                ? 'text-blue-400 sm:bg-white/10 sm:text-white sm:border border-white/10'
-                : 'text-slate-500'
-            }`}
-          >
-            <TrendingUp className="w-5 h-5 sm:w-4 sm:h-4" />{' '}
-            <span>Flipping</span>
-          </button>
-        </div>
-      </nav>
-
-      <div className="max-w-5xl mx-auto px-4 pt-6 sm:pt-32 relative z-10">
+      {/* ÁREA DE CONTENIDO */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
         {isLoading ? (
-          <div className="text-center py-20 text-slate-400">
-            Cargando base de datos...
+          <div className="flex flex-col items-center justify-center py-40">
+            <div className="w-6 h-6 border-2 border-[#38383A] border-t-white rounded-full animate-spin"></div>
           </div>
         ) : (
-          <>
-            {activeModule === 'recepcion' && (
-              <ReceptionForm
-                onAddRepair={handleAddRepair}
-                onOpenTicket={(ticket) => {
-                  setLastTicket(ticket);
-                  setShowTicket(true);
-                }}
-              />
-            )}
-            {activeModule === 'taller' && (
-              <WorkshopKanban
-                repairs={repairs}
-                onUpdateStatus={handleUpdateRepairStatus}
-              />
-            )}
-            {activeModule === 'flipping' && (
-              <FlippingModule
-                items={flippingItems}
-                onAddItem={handleAddFlipping}
-                onUpdateStatus={handleUpdateFlippingStatus}
-                onDeleteItem={handleDeleteFlippingItem}
-              />
-            )}
-          </>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeModule}
+              initial={{ opacity: 0, scale: 0.99 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.99 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="w-full"
+            >
+              {activeModule === 'recepcion' && (
+                <ReceptionForm
+                  onAddRepair={handleAddRepair}
+                  onOpenTicket={(ticket) => {
+                    setLastTicket(ticket);
+                    setShowTicket(true);
+                  }}
+                />
+              )}
+              {activeModule === 'taller' && (
+                <WorkshopKanban
+                  repairs={repairs}
+                  onUpdateStatus={handleUpdateRepairStatus}
+                  onDeleteRepair={handleDeleteRepair}
+                />
+              )}
+              {activeModule === 'flipping' && (
+                <FlippingModule
+                  items={flippingItems}
+                  onAddItem={handleAddFlipping}
+                  onUpdateStatus={handleUpdateFlippingStatus}
+                  onDeleteItem={handleDeleteFlippingItem}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
+
+      {/* BOTTOM TAB BAR: Fondo de cristal verdadero e íconos legibles */}
+      <nav className="fixed bottom-0 left-0 w-full z-50 bg-[#121212]/80 backdrop-blur-[30px] border-t border-[#38383A] pb-safe supports-[backdrop-filter]:bg-black/60 sm:bottom-6 sm:top-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-max sm:rounded-full sm:border sm:px-6 sm:py-2.5 sm:shadow-2xl">
+        <div className="flex justify-around items-center h-[60px] sm:h-auto gap-2 sm:gap-6 px-4 sm:px-0">
+          
+          <button
+            onClick={() => setActiveModule('recepcion')}
+            className="flex flex-col items-center justify-center gap-1 w-[70px] transition-all"
+          >
+            <Smartphone 
+              className={`w-[24px] h-[24px] transition-colors ${
+                activeModule === 'recepcion' ? 'text-white' : 'text-[#8E8E93]'
+              }`} 
+              strokeWidth={activeModule === 'recepcion' ? 2.5 : 1.5}
+            />
+            <span className={`text-[10px] font-medium tracking-wide transition-colors ${
+              activeModule === 'recepcion' ? 'text-white' : 'text-[#8E8E93]'
+            }`}>
+              Recepción
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setActiveModule('taller')}
+            className="flex flex-col items-center justify-center gap-1 w-[70px] transition-all relative"
+          >
+            <div className="relative flex justify-center w-full">
+              <Wrench 
+                className={`w-[24px] h-[24px] transition-colors ${
+                  activeModule === 'taller' ? 'text-white' : 'text-[#8E8E93]'
+                }`}
+                strokeWidth={activeModule === 'taller' ? 2.5 : 1.5}
+              />
+              {repairs.filter((r) => r.status !== 'entregado').length > 0 && (
+                <span className="absolute -top-1.5 -right-1 bg-white text-black text-[9px] min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 font-bold shadow-sm ring-2 ring-[#121212]">
+                  {repairs.filter((r) => r.status !== 'entregado').length}
+                </span>
+              )}
+            </div>
+            <span className={`text-[10px] font-medium tracking-wide transition-colors ${
+              activeModule === 'taller' ? 'text-white' : 'text-[#8E8E93]'
+            }`}>
+              Taller
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveModule('flipping')}
+            className="flex flex-col items-center justify-center gap-1 w-[70px] transition-all"
+          >
+            <TrendingUp 
+              className={`w-[24px] h-[24px] transition-colors ${
+                activeModule === 'flipping' ? 'text-white' : 'text-[#8E8E93]'
+              }`}
+              strokeWidth={activeModule === 'flipping' ? 2.5 : 1.5}
+            />
+            <span className={`text-[10px] font-medium tracking-wide transition-colors ${
+              activeModule === 'flipping' ? 'text-white' : 'text-[#8E8E93]'
+            }`}>
+              Mercado
+            </span>
+          </button>
+
+        </div>
+      </nav>
 
       {showTicket && lastTicket && (
         <TicketModal data={lastTicket} onClose={() => setShowTicket(false)} />

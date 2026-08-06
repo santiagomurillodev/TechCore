@@ -2,50 +2,49 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Smartphone, Monitor, Gamepad2 } from 'lucide-react';
 import { supabase } from './supabase';
 
 interface ReceptionFormProps {
-  onAddRepair: (newRepair: any) => void;
-  onOpenTicket: (ticketData: any) => void;
+  onAddRepair: (repair: any) => void;
+  onOpenTicket: (ticket: any) => void;
 }
 
 export default function ReceptionForm({
   onAddRepair,
   onOpenTicket,
 }: ReceptionFormProps) {
+  const [deviceType, setDeviceType] = useState('celular');
   const [formData, setFormData] = useState({
-    device: 'celular',
     client: '',
     phone: '',
     model: '',
-    password: '',
     issue: '',
-    repairPrice: 500,
-    advancePayment: 0,
+    password: '',
+    repairPrice: '',
+    advancePayment: '',
   });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const newFolio = `#0${Math.floor(Math.random() * 900 + 100)}`;
-    const currentDate = new Date().toISOString(); 
-    const ticketData = { folio: newFolio, date: currentDate, ...formData };
-
+    const folio = `#${Math.floor(1000 + Math.random() * 9000)}`;
+    const currentDate = new Date().toISOString();
+    
     const dbRecord = {
-      folio: newFolio,
+      folio,
       client: formData.client,
       phone: formData.phone,
-      device_type: formData.device,
+      device_type: deviceType,
       model: formData.model,
       issue: formData.issue,
       password: formData.password || null,
       status: 'por_revisar',
       part_cost: 0,
-      repair_price: Number(formData.repairPrice),
-      advance_payment: Number(formData.advancePayment),
+      repair_price: Number(formData.repairPrice) || 0,
+      advance_payment: Number(formData.advancePayment) || 0,
     };
 
     const { data, error } = await supabase
@@ -55,19 +54,18 @@ export default function ReceptionForm({
       .single();
 
     if (error) {
-      console.error('Error al guardar en Supabase:', error);
-      alert('Hubo un error al guardar el equipo. Intenta de nuevo.');
+      console.error(error);
+      alert('Error al guardar la orden.');
       setIsSubmitting(false);
       return;
     }
 
-    const frontendRepairObj = {
+    const newRepair = {
       id: data.id,
       folio: data.folio,
       client: data.client,
       phone: data.phone,
       deviceType: data.device_type,
-      created_at: currentDate, 
       model: data.model,
       issue: data.issue,
       password: data.password,
@@ -75,201 +73,190 @@ export default function ReceptionForm({
       partCost: data.part_cost,
       repairPrice: data.repair_price,
       advancePayment: data.advance_payment,
+      created_at: currentDate,
     };
 
-    onAddRepair(frontendRepairObj);
-    onOpenTicket(ticketData);
+    onAddRepair(newRepair);
 
-    setFormData({
-      device: 'celular',
-      client: '',
-      phone: '',
-      model: '',
-      password: '',
-      issue: '',
-      repairPrice: 500,
-      advancePayment: 0,
+    const ticketData = {
+      folio: newRepair.folio,
+      client: newRepair.client,
+      phone: newRepair.phone,
+      model: newRepair.model,
+      issue: newRepair.issue,
+      password: newRepair.password,
+      date: currentDate,
+    };
+
+    setFormData({ 
+      client: '', phone: '', model: '', issue: '', password: '', repairPrice: '', advancePayment: ''
     });
+    setDeviceType('celular');
     setIsSubmitting(false);
+    onOpenTicket(ticketData);
   };
+
+  const devices = [
+    { id: 'celular', label: 'Móvil', icon: Smartphone },
+    { id: 'computadora', label: 'PC / Mac', icon: Monitor },
+    { id: 'consola', label: 'Consola', icon: Gamepad2 },
+  ];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="max-w-lg mx-auto bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/50 relative overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="w-full font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif]"
     >
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500"></div>
-
-      <div className="text-center mb-6 sm:mb-8">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-          Nuevo Ingreso
-        </h2>
-        <p className="text-slate-400 text-xs sm:text-sm mt-2">
-          Registra la entrada y genera el folio del equipo.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3 ml-1">
-            Selecciona el Dispositivo
+      <form onSubmit={handleSubmit} className="space-y-8 pb-10">
+        
+        {/* SELECTOR DE DISPOSITIVO */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2">
+            Tipo de Equipo
           </label>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            {['celular', 'computadora', 'consola'].map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setFormData({ ...formData, device: type })}
-                className={`py-4 sm:py-5 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 ${
-                  formData.device === type
-                    ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)]'
-                    : 'bg-slate-950/50 border-white/5 hover:bg-slate-800'
-                }`}
-              >
-                <span className="text-2xl sm:text-3xl">
-                  {type === 'celular' && '📱'}
-                  {type === 'computadora' && '💻'}
-                  {type === 'consola' && '🎮'}
-                </span>
-                <span
-                  className={`text-[10px] sm:text-xs font-medium capitalize ${
-                    formData.device === type
-                      ? 'text-blue-400'
-                      : 'text-slate-400'
+          <div className="grid grid-cols-3 gap-3">
+            {devices.map((device) => {
+              const Icon = device.icon;
+              const isActive = deviceType === device.id;
+              return (
+                <button
+                  key={device.id}
+                  type="button"
+                  onClick={() => setDeviceType(device.id)}
+                  className={`py-4 rounded-[18px] flex flex-col items-center justify-center gap-2 transition-all duration-200 active:scale-95 ${
+                    isActive
+                      ? 'bg-white text-black shadow-lg'
+                      : 'bg-[#1C1C1E] text-[#8E8E93] hover:bg-[#2C2C2E]'
                   }`}
                 >
-                  {type === 'celular' ? 'Móvil' : type}
-                </span>
-              </button>
-            ))}
+                  <Icon 
+                    className={`w-6 h-6 ${isActive ? 'fill-black/10' : ''}`} 
+                    strokeWidth={isActive ? 2 : 1.5} 
+                  />
+                  <span className={`text-[12px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
+                    {device.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-slate-400 ml-1">
-                Nombre Completo
-              </label>
-              <input
-                type="text"
-                placeholder="Ej. Juan Pérez"
-                required
-                value={formData.client}
-                onChange={(e) =>
-                  setFormData({ ...formData, client: e.target.value })
-                }
-                className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl focus:outline-none focus:border-blue-500 text-base sm:text-sm text-slate-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-slate-400 ml-1">
-                WhatsApp (10 dígitos)
-              </label>
-              <input
-                type="tel"
-                placeholder="55 1234 5678"
-                required
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl focus:outline-none focus:border-blue-500 text-base sm:text-sm text-slate-200"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-slate-400 ml-1">
-                Marca y Modelo
-              </label>
-              <input
-                type="text"
-                placeholder="Ej. iPhone 13 Pro"
-                required
-                value={formData.model}
-                onChange={(e) =>
-                  setFormData({ ...formData, model: e.target.value })
-                }
-                className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl focus:outline-none focus:border-blue-500 text-base sm:text-sm text-slate-200"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-amber-500/70 ml-1">
-                PIN / Contraseña (Opcional)
-              </label>
-              <input
-                type="text"
-                placeholder="Desbloqueo"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl focus:outline-none focus:border-amber-500 font-mono text-amber-400 text-base sm:text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-emerald-400 ml-1">
-                Anticipo Recibido ($)
-              </label>
-              <input
-                type="number"
-                value={formData.advancePayment}
-                onChange={(e) =>
-                  setFormData({ ...formData, advancePayment: Number(e.target.value) })
-                }
-                className="w-full px-4 py-3.5 bg-slate-950/80 border border-emerald-500/30 rounded-xl focus:outline-none focus:border-emerald-500 text-base sm:text-sm text-emerald-400 font-semibold"
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-cyan-400 ml-1">
-                Precio Cotizado Inicial ($)
-              </label>
-              <input
-                type="number"
-                value={formData.repairPrice}
-                onChange={(e) =>
-                  setFormData({ ...formData, repairPrice: Number(e.target.value) })
-                }
-                className="w-full px-4 py-3.5 bg-slate-950/80 border border-cyan-500/30 rounded-xl focus:outline-none focus:border-cyan-500 text-base sm:text-sm text-cyan-300 font-semibold"
-                placeholder="500"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-slate-400 ml-1">
-              Falla Reportada
-            </label>
-            <textarea
-              placeholder="Describe detalladamente el problema..."
-              rows={3}
+        {/* DATOS DEL CLIENTE */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block mt-1">
+            Datos del Cliente
+          </label>
+          
+          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden">
+            <input
+              type="text"
               required
-              value={formData.issue}
-              onChange={(e) =>
-                setFormData({ ...formData, issue: e.target.value })
-              }
-              className="w-full px-4 py-3.5 bg-slate-950/80 border border-white/5 rounded-xl focus:outline-none focus:border-blue-500 text-base sm:text-sm text-slate-200 resize-none"
-            ></textarea>
+              placeholder="Nombre completo"
+              value={formData.client}
+              onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+              className="w-full bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors"
+            />
+            
+            {/* Línea divisoria más clara y definida */}
+            <div className="h-[1px] bg-[#48484A] ml-5"></div>
+            
+            <input
+              type="tel"
+              required
+              placeholder="WhatsApp (10 dígitos)"
+              pattern="[0-9]{10}"
+              maxLength={10}
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+              className="w-full bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors"
+            />
           </div>
         </div>
 
+        {/* DETALLES TÉCNICOS */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block mt-1">
+            Detalles Técnicos
+          </label>
+          
+          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden">
+            {/* Usamos w-2/3 y w-1/3 para evitar que se aplasten */}
+            <div className="flex">
+              <input
+                type="text"
+                required
+                placeholder="Modelo del equipo"
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                className="w-2/3 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors"
+              />
+              
+              <div className="w-[1px] bg-[#48484A] my-3 shrink-0"></div>
+              
+              <input
+                type="text"
+                placeholder="PIN / Pass"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-1/3 bg-transparent text-white px-4 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors font-mono text-center"
+              />
+            </div>
+
+            <div className="h-[1px] bg-[#48484A] ml-5"></div>
+
+            <textarea
+              required
+              placeholder="Descripción de la falla..."
+              value={formData.issue}
+              onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
+              rows={3}
+              className="w-full bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors resize-none leading-relaxed"
+            />
+          </div>
+        </div>
+
+        {/* FINANZAS */}
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block mt-1">
+            Finanzas
+          </label>
+          
+          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden flex">
+            <input
+              type="number"
+              placeholder="Cotización ($)"
+              value={formData.repairPrice}
+              onChange={(e) => setFormData({ ...formData, repairPrice: e.target.value })}
+              className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors font-semibold text-center"
+            />
+            
+            <div className="w-[1px] bg-[#48484A] my-3 shrink-0"></div>
+            
+            <input
+              type="number"
+              placeholder="Anticipo ($)"
+              value={formData.advancePayment}
+              onChange={(e) => setFormData({ ...formData, advancePayment: e.target.value })}
+              className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors font-semibold text-center"
+            />
+          </div>
+        </div>
+
+        {/* BOTÓN SUBMIT */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-50 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-[0.98] mt-2 text-base sm:text-sm flex justify-center items-center gap-2"
+          className="w-full bg-white text-black flex items-center justify-center gap-2 py-4 rounded-[18px] mt-2 hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
         >
-          {isSubmitting
-            ? 'Guardando en la base de datos...'
-            : 'Generar Ticket y Registrar'}
+          {isSubmitting ? (
+            <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+          ) : (
+            <span className="font-bold text-[17px] tracking-tight">Procesar Ingreso</span>
+          )}
         </button>
+
       </form>
     </motion.div>
   );
