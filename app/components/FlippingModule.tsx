@@ -2,19 +2,21 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Tag, Copy, X, Save } from 'lucide-react';
+import { Plus, Tag, Copy, X, Save, Trash2 } from 'lucide-react';
 import { supabase } from './supabase';
 
 interface FlippingProps {
   items: any[];
   onAddItem: (item: any) => void;
   onUpdateStatus: (id: string, status: string) => void;
+  onDeleteItem?: (id: string) => void; // Añadimos prop para eliminar (opcional por compatibilidad)
 }
 
 export default function FlippingModule({
   items,
   onAddItem,
   onUpdateStatus,
+  onDeleteItem,
 }: FlippingProps) {
   const [showForm, setShowForm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -23,10 +25,10 @@ export default function FlippingModule({
   const [formData, setFormData] = useState({
     item: '',
     buyPrice: '',
-    repairCost: '0',
     sellPrice: '',
   });
 
+  // El total solo suma los que están en estado "vendido"
   const totalFlippingProfit = items
     .filter((f) => f.status === 'vendido')
     .reduce(
@@ -39,10 +41,10 @@ export default function FlippingModule({
     const dbRecord = {
       item: formData.item,
       buy_price: Number(formData.buyPrice),
-      repair_cost: Number(formData.repairCost),
+      repair_cost: 0, // Inicia en 0, se puede editar luego si hay gastos imprevistos
       sell_price: Number(formData.sellPrice),
-      status: 'en_reparacion',
-      description: `A la venta: ${formData.item}\n\nExcelente estado. Entregas personales acordadas.\n\nPrecio: $${formData.sellPrice}\n\nRespaldo de MURILLXSTORE.`,
+      status: 'en_venta', // Cambiamos el estado inicial a "en_venta"
+      description: `A la venta: ${formData.item}\n\nExcelente estado. Entregas personales acordadas.\n\nPrecio: $${formData.sellPrice}\n\nRespaldo de TechCore.`,
     };
 
     const { data } = await supabase
@@ -50,6 +52,7 @@ export default function FlippingModule({
       .insert([dbRecord])
       .select()
       .single();
+      
     if (data) {
       onAddItem({
         id: data.id,
@@ -60,8 +63,31 @@ export default function FlippingModule({
         status: data.status,
         description: data.description,
       });
-      setFormData({ item: '', buyPrice: '', repairCost: '0', sellPrice: '' });
+      setFormData({ item: '', buyPrice: '', sellPrice: '' });
       setShowForm(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este artículo? Esta acción no se puede deshacer.')) {
+      // Eliminar de Supabase
+      const { error } = await supabase
+        .from('flipping_items')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+         // Si tienes la función onDeleteItem pasada desde page.tsx, úsala
+         if(onDeleteItem) {
+            onDeleteItem(id);
+         } else {
+             // Fallback temporal si no has actualizado page.tsx aún
+             alert('Artículo eliminado de la base de datos. Recarga la página para ver los cambios.');
+         }
+      } else {
+          alert('Hubo un error al eliminar el artículo.');
+          console.error(error);
+      }
     }
   };
 
@@ -101,7 +127,7 @@ export default function FlippingModule({
             ${totalFlippingProfit}.00
           </p>
           <p className="text-[10px] text-slate-500 uppercase">
-            Ganancia Neta Obtenida
+            Ganancia Neta (Artículos Vendidos)
           </p>
         </div>
       </div>
@@ -126,7 +152,7 @@ export default function FlippingModule({
             onChange={(e) => setFormData({ ...formData, item: e.target.value })}
             className="w-full px-4 py-3 bg-slate-950/80 border border-white/5 rounded-xl text-sm text-white"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="number"
               placeholder="Costo Compra ($)"
@@ -139,17 +165,7 @@ export default function FlippingModule({
             />
             <input
               type="number"
-              placeholder="Gastos Extras ($)"
-              required
-              value={formData.repairCost}
-              onChange={(e) =>
-                setFormData({ ...formData, repairCost: e.target.value })
-              }
-              className="w-full px-4 py-2 bg-slate-950/80 border border-white/5 rounded-xl text-sm text-white"
-            />
-            <input
-              type="number"
-              placeholder="Precio Venta ($)"
+              placeholder="Precio Venta Estimado ($)"
               required
               value={formData.sellPrice}
               onChange={(e) =>
@@ -162,68 +178,91 @@ export default function FlippingModule({
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="flex-1 py-3 rounded-xl border border-slate-600 text-slate-300"
+              className="flex-1 py-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold"
+              className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-lg shadow-blue-500/20"
             >
-              Guardar
+              Guardar Inversión
             </button>
           </div>
         </form>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="bg-slate-950/60 backdrop-blur-md border border-white/5 p-5 rounded-2xl flex flex-col justify-between shadow-lg"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="font-bold text-white text-base truncate pr-2">
-                {item.item}
-              </h3>
-              <select
-                value={item.status}
-                onChange={(e) => onUpdateStatus(item.id, e.target.value)}
-                className="text-xs rounded-lg px-2 py-1 font-medium border bg-slate-900 text-white"
-              >
-                <option value="en_reparacion">En Reparación</option>
-                <option value="en_venta">En Venta</option>
-                <option value="vendido">Vendido</option>
-              </select>
-            </div>
+        {items.map((item) => {
+          const isSold = item.status === 'vendido';
+          const totalCost = item.buyPrice + (Number(item.repairCost) || 0);
+          const profit = item.sellPrice - totalCost;
 
-            <div className="grid grid-cols-3 gap-2 text-xs bg-slate-900/50 p-3 rounded-xl border border-white/5 text-center mb-3">
-              <div>
-                <p className="text-slate-500">Inversión</p>
-                <p className="font-bold text-slate-300">
-                  ${item.buyPrice + item.repairCost}
-                </p>
-              </div>
-              <div className="border-x border-white/5">
-                <p className="text-slate-500">Venta</p>
-                <p className="font-bold text-white">${item.sellPrice}</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Utilidad</p>
-                <p className="font-bold text-emerald-400">
-                  ${item.sellPrice - (item.buyPrice + item.repairCost)}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => openEditor(item)}
-              className="w-full py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-xl text-xs font-semibold transition-colors border border-blue-500/20"
+          return (
+            <div
+              key={item.id}
+              className={`bg-slate-950/60 backdrop-blur-md border p-5 rounded-2xl flex flex-col justify-between shadow-lg transition-colors ${
+                isSold ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-white/5'
+              }`}
             >
-              Redactar Publicación
-            </button>
-          </div>
-        ))}
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1 pr-2">
+                  <h3 className="font-bold text-white text-base truncate">
+                    {item.item}
+                  </h3>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <select
+                    value={item.status}
+                    onChange={(e) => onUpdateStatus(item.id, e.target.value)}
+                    className={`text-xs rounded-lg px-2 py-1 font-medium border focus:outline-none ${
+                      isSold 
+                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' 
+                        : 'bg-slate-900 border-white/10 text-white'
+                    }`}
+                  >
+                    <option value="en_reparacion">En Reparación</option>
+                    <option value="en_venta">En Venta</option>
+                    <option value="vendido">Vendido</option>
+                  </select>
+                  <button 
+                    onClick={() => handleDelete(item.id)}
+                    className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                    title="Eliminar artículo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-xs bg-slate-900/50 p-3 rounded-xl border border-white/5 text-center mb-3">
+                <div>
+                  <p className="text-slate-500">Inversión</p>
+                  <p className="font-bold text-slate-300">
+                    ${totalCost}
+                  </p>
+                </div>
+                <div className="border-x border-white/5">
+                  <p className="text-slate-500">Venta</p>
+                  <p className="font-bold text-white">${item.sellPrice}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">{isSold ? 'Ganancia' : 'Proyectado'}</p>
+                  <p className={`font-bold ${isSold ? 'text-emerald-400' : 'text-blue-400'}`}>
+                    ${profit}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => openEditor(item)}
+                className="w-full py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold transition-colors border border-white/5 flex items-center justify-center gap-2"
+              >
+                <Tag className="w-3.5 h-3.5" /> Redactar Publicación
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* MODAL DEL EDITOR DE PUBLICACIÓN */}

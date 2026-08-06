@@ -107,6 +107,10 @@ export default function TechCoreApp() {
       .eq('id', id);
   };
 
+  const handleDeleteFlippingItem = (id: string) => {
+    setFlippingItems(flippingItems.filter((f) => f.id !== id));
+  };
+
   return (
     <main className="min-h-screen bg-[#070B14] text-slate-100 font-sans pb-20 sm:pb-12 relative overflow-hidden selection:bg-blue-500/30">
       <div className="absolute top-[-15%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none"></div>
@@ -193,6 +197,7 @@ export default function TechCoreApp() {
                 items={flippingItems}
                 onAddItem={handleAddFlipping}
                 onUpdateStatus={handleUpdateFlippingStatus}
+                onDeleteItem={handleDeleteFlippingItem}
               />
             )}
           </>
