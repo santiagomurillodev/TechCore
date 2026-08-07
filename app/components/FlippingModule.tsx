@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Tag, Copy, X, Save, Trash2 } from 'lucide-react';
+import { Plus, Tag, Copy, X, Save, Trash2, ChevronDown, Check, Search } from 'lucide-react';
 import { supabase } from './supabase';
 
 interface FlippingProps {
@@ -21,6 +21,13 @@ export default function FlippingModule({
   const [showForm, setShowForm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [descriptionText, setDescriptionText] = useState('');
+  
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [statusModalItem, setStatusModalItem] = useState<any>(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('activos');
 
   const [formData, setFormData] = useState({
     item: '',
@@ -35,6 +42,12 @@ export default function FlippingModule({
       0
     );
 
+  const filteredItems = items.filter((item) => {
+    const matchesSearch = item.item.toLowerCase().includes(searchTerm.toLowerCase());
+    if (selectedFilter === 'activos') return matchesSearch && item.status !== 'vendido';
+    return matchesSearch && item.status === selectedFilter;
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const dbRecord = {
@@ -46,11 +59,7 @@ export default function FlippingModule({
       description: `A la venta: ${formData.item}\n\nExcelente estado. Entregas personales acordadas.\n\nPrecio: $${formData.sellPrice}\n\nRespaldo de TechCore.`,
     };
 
-    const { data } = await supabase
-      .from('flipping_items')
-      .insert([dbRecord])
-      .select()
-      .single();
+    const { data } = await supabase.from('flipping_items').insert([dbRecord]).select().single();
 
     if (data) {
       onAddItem({
@@ -67,28 +76,11 @@ export default function FlippingModule({
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        '¿Seguro que deseas eliminar este artículo? Esta acción es irreversible.'
-      )
-    ) {
-      const { error } = await supabase
-        .from('flipping_items')
-        .delete()
-        .eq('id', id);
-
-      if (!error) {
-        if (onDeleteItem) {
-          onDeleteItem(id);
-        } else {
-          alert('Artículo eliminado. Recarga la página.');
-        }
-      } else {
-        alert('Hubo un error al eliminar el artículo.');
-        console.error(error);
-      }
-    }
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    const { error } = await supabase.from('flipping_items').delete().eq('id', itemToDelete);
+    if (!error && onDeleteItem) onDeleteItem(itemToDelete);
+    setItemToDelete(null);
   };
 
   const openEditor = (item: any) => {
@@ -97,38 +89,96 @@ export default function FlippingModule({
   };
 
   const saveDescription = async () => {
-    await supabase
-      .from('flipping_items')
-      .update({ description: descriptionText })
-      .eq('id', selectedItem.id);
+    await supabase.from('flipping_items').update({ description: descriptionText }).eq('id', selectedItem.id);
     selectedItem.description = descriptionText;
     setSelectedItem(null);
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(descriptionText);
-    alert('¡Descripción copiada! Lista para pegar en Marketplace.');
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
+
+  const filterOptions = [
+    { id: 'activos', label: 'Todos Activos' },
+    { id: 'en_reparacion', label: 'En Reparación' },
+    { id: 'en_venta', label: 'En Venta' },
+    { id: 'vendido', label: 'Vendidos' }
+  ];
+
+  const statusOptions = [
+    { value: 'en_reparacion', label: 'En Reparación' },
+    { value: 'en_venta', label: 'En Venta' },
+    { value: 'vendido', label: 'Vendido' }
+  ];
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="w-full font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif] space-y-6 pb-10"
+      className="w-full font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif] space-y-6 relative"
     >
-      {/* HEADER: Ganancias tipo Apple Wallet */}
-      <div className="px-2 pt-2 pb-4 flex justify-between items-end border-b border-[#1C1C1E]">
-        <div>
-          <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase block mb-1">
-            Ganancia Neta
-          </label>
-          <p className="text-4xl font-bold text-white tracking-tight">
-            ${totalFlippingProfit}.<span className="text-xl text-[#8E8E93]">00</span>
-          </p>
+      <div className="px-2 pt-2 pb-2">
+        <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase block mb-1">
+          Ganancia Neta
+        </label>
+        <p className="text-4xl font-bold text-white tracking-tight">
+          ${totalFlippingProfit}.<span className="text-xl text-[#8E8E93]">00</span>
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="relative w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8E8E93]" />
+          <input
+            type="text"
+            placeholder="Buscar artículo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-5 py-4 bg-[#1C1C1E] rounded-[18px] text-[16px] text-white placeholder:text-[#8E8E93] focus:outline-none transition-all"
+          />
+        </div>
+
+        <div className="pt-1">
+          <div className="sm:hidden relative">
+            <select
+              value={selectedFilter}
+              onChange={(e) => setSelectedFilter(e.target.value)}
+              className="w-full bg-[#1C1C1E] text-white text-[16px] font-bold rounded-[16px] px-5 py-4 focus:outline-none appearance-none cursor-pointer"
+            >
+              {filterOptions.map(filter => (
+                <option key={filter.id} value={filter.id} className="bg-[#1C1C1E] text-white">
+                  {filter.label}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
+              <ChevronDown className="h-5 w-5 text-[#8E8E93]" />
+            </div>
+          </div>
+
+          <div className="hidden sm:grid sm:grid-cols-4 gap-2.5 w-full">
+            {filterOptions.map(filter => {
+              const isActive = selectedFilter === filter.id;
+              return (
+                <button
+                  key={filter.id}
+                  onClick={() => setSelectedFilter(filter.id)}
+                  className={`py-3.5 rounded-[14px] text-[14px] font-bold transition-all text-center truncate px-2 ${
+                    isActive 
+                      ? 'bg-white text-black shadow-md' 
+                      : 'bg-[#1C1C1E] text-[#8E8E93] hover:bg-[#2C2C2E] hover:text-white'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* BOTÓN / FORMULARIO (Estilo Inset Grouped) */}
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
@@ -148,187 +198,182 @@ export default function FlippingModule({
             <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block">
               Datos de Inversión
             </label>
-            
-            <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden">
+            <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden divide-y divide-[#38383A]">
               <input
                 type="text"
                 placeholder="Equipo (Ej. iPhone 13, Nintendo Switch)"
                 required
                 value={formData.item}
                 onChange={(e) => setFormData({ ...formData, item: e.target.value })}
-                className="w-full bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors"
+                className="w-full bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none"
               />
-              
-              <div className="h-[1px] bg-[#48484A] ml-5"></div>
-              
-              <div className="flex">
+              <div className="flex divide-x divide-[#38383A]">
                 <input
                   type="number"
                   placeholder="Costo ($)"
                   required
                   value={formData.buyPrice}
                   onChange={(e) => setFormData({ ...formData, buyPrice: e.target.value })}
-                  className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors text-center"
+                  className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none text-center"
                 />
-                
-                <div className="w-[1px] bg-[#48484A] my-3 shrink-0"></div>
-                
                 <input
                   type="number"
                   placeholder="Venta ($)"
                   required
                   value={formData.sellPrice}
                   onChange={(e) => setFormData({ ...formData, sellPrice: e.target.value })}
-                  className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors text-center font-bold"
+                  className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none text-center font-bold"
                 />
               </div>
             </div>
           </div>
-
           <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="flex-1 py-4 rounded-[18px] bg-[#2C2C2E] text-white hover:bg-[#3C3C3E] active:scale-[0.98] transition-all font-semibold text-[16px]"
-            >
+            <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-4 rounded-[18px] bg-[#2C2C2E] text-white hover:bg-[#3C3C3E] active:scale-[0.98] transition-all font-semibold text-[16px]">
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="flex-1 py-4 rounded-[18px] bg-white text-black font-bold hover:bg-gray-200 active:scale-[0.98] transition-all text-[16px]"
-            >
+            <button type="submit" className="flex-1 py-4 rounded-[18px] bg-white text-black font-bold hover:bg-gray-200 active:scale-[0.98] transition-all text-[16px]">
               Guardar
             </button>
           </div>
         </motion.form>
       )}
 
-      {/* LISTADO DE INVENTARIO */}
-      <div className="space-y-4">
-        {items.map((item) => {
-          const isSold = item.status === 'vendido';
-          const totalCost = item.buyPrice + (Number(item.repairCost) || 0);
-          const profit = item.sellPrice - totalCost;
+      <div className="space-y-4 mt-8">
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-16 text-[#8E8E93] font-medium text-[15px]">
+            No hay artículos en esta categoría.
+          </div>
+        ) : (
+          filteredItems.map((item) => {
+            const isSold = item.status === 'vendido';
+            const totalCost = item.buyPrice + (Number(item.repairCost) || 0);
+            const profit = item.sellPrice - totalCost;
+            const currentStatusLabel = statusOptions.find(opt => opt.value === item.status)?.label || 'Estado';
 
-          return (
-            <div
-              key={item.id}
-              className="bg-[#1C1C1E] p-5 rounded-[18px] flex flex-col justify-between relative overflow-hidden"
-            >
-              {/* Indicador sutil si está vendido */}
-              {isSold && <div className="absolute top-0 left-0 w-1.5 h-full bg-white"></div>}
-
-              {/* Cabecera de la Tarjeta */}
-              <div className="flex justify-between items-center mb-4">
-                <h3 className={`font-bold text-[18px] truncate pr-4 ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
-                  {item.item}
-                </h3>
-                
-                {/* Select Nativo iOS style */}
-                <select
-                  value={item.status}
-                  onChange={(e) => onUpdateStatus(item.id, e.target.value)}
-                  className={`bg-transparent text-[14px] font-semibold text-right focus:outline-none appearance-none ${
-                    isSold ? 'text-white' : 'text-[#8E8E93]'
-                  }`}
-                  style={{ WebkitAppearance: 'none' }}
-                >
-                  <option value="en_reparacion">En Reparación</option>
-                  <option value="en_venta">En Venta</option>
-                  <option value="vendido">✓ Vendido</option>
-                </select>
-              </div>
-
-              {/* Estadísticas de la Inversión (Estilo Inset horizontal) */}
-              <div className="flex items-center border-y border-[#38383A] py-3 mb-4">
-                <div className="flex-1 text-center">
-                  <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Costo</p>
-                  <p className="font-semibold text-white text-[15px]">${totalCost}</p>
+            return (
+              <div key={item.id} className="bg-[#1C1C1E] p-5 rounded-[18px] flex flex-col justify-between overflow-hidden">
+                <div className="flex justify-between items-center mb-6 gap-4">
+                  <h3 className={`font-bold text-[17px] uppercase tracking-wider truncate ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
+                    {item.item}
+                  </h3>
+                  
+                  <button
+                    onClick={() => setStatusModalItem(item)}
+                    className="flex items-center gap-1.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] px-3 py-1.5 rounded-[12px] active:scale-95 transition-all shrink-0"
+                  >
+                    <span className={`text-[13px] font-bold ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
+                      {currentStatusLabel}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#8E8E93]" />
+                  </button>
                 </div>
-                
-                <div className="w-[1px] h-8 bg-[#38383A]"></div>
-                
-                <div className="flex-1 text-center">
-                  <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Venta</p>
-                  <p className="font-semibold text-white text-[15px]">${item.sellPrice}</p>
+
+                <div className="flex items-center border-b border-[#38383A] pb-5 mb-5 divide-x divide-[#38383A]">
+                  <div className="flex-1 text-center px-2">
+                    <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Costo</p>
+                    <p className="font-bold text-white text-[16px]">${totalCost}</p>
+                  </div>
+                  <div className="flex-1 text-center px-2">
+                    <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Venta</p>
+                    <p className="font-bold text-white text-[16px]">${item.sellPrice}</p>
+                  </div>
+                  <div className="flex-1 text-center px-2">
+                    <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">{isSold ? 'Ganancia' : 'Proyectado'}</p>
+                    <p className="font-bold text-white text-[16px]">${profit}</p>
+                  </div>
                 </div>
-                
-                <div className="w-[1px] h-8 bg-[#38383A]"></div>
-                
-                <div className="flex-1 text-center">
-                  <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">
-                    {isSold ? 'Ganancia' : 'Proyectado'}
-                  </p>
-                  <p className="font-bold text-white text-[15px]">
-                    ${profit}
-                  </p>
+
+                <div className="flex gap-3">
+                  <button onClick={() => openEditor(item)} className="flex-1 py-3.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[14px] text-[15px] font-semibold transition-colors flex items-center justify-center gap-2 active:scale-95">
+                    <Tag className="w-4 h-4" /> Redactar
+                  </button>
+                  <button onClick={() => setItemToDelete(item.id)} className="w-[52px] flex items-center justify-center bg-[#2C2C2E] hover:bg-[#3C3C3E] text-[#8E8E93] hover:text-red-400 rounded-[14px] transition-colors active:scale-95">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-
-              {/* Controles: Redactar y Eliminar */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => openEditor(item)}
-                  className="flex-1 py-3.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[14px] text-[15px] font-semibold transition-colors flex items-center justify-center gap-2 active:scale-95"
-                >
-                  <Tag className="w-4 h-4" /> Redactar
-                </button>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="w-14 flex items-center justify-center bg-[#2C2C2E] hover:bg-[#3C3C3E] text-[#8E8E93] hover:text-white rounded-[14px] transition-colors active:scale-95"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
-      {/* MODAL DEL EDITOR DE PUBLICACIÓN (Estilo Apple Modal) */}
       <AnimatePresence>
-        {selectedItem && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 pb-0 sm:pb-4">
+        {statusModalItem && (
+          <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-6 sm:pb-4">
             <motion.div
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-[#1C1C1E] w-full max-w-lg rounded-t-[32px] sm:rounded-[24px] shadow-2xl p-6 pt-5 max-h-[90vh] flex flex-col"
+              className="bg-[#1C1C1E] border border-white/10 sm:border w-full max-w-sm rounded-[32px] sm:rounded-[32px] shadow-2xl p-6 sm:p-8 flex flex-col relative"
             >
-              {/* Pill handler (iOS style) */}
-              <div className="w-12 h-1.5 bg-[#48484A] rounded-full mx-auto mb-4 sm:hidden"></div>
+              <h3 className="text-[34px] font-black text-white tracking-tight mb-6 leading-none text-center">Estado</h3>
+              <div className="space-y-3">
+                {statusOptions.map(opt => {
+                  const isActive = statusModalItem.status === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => { onUpdateStatus(statusModalItem.id, opt.value); setStatusModalItem(null); }}
+                      className={`w-full py-4 rounded-[18px] text-[17px] font-bold flex justify-between items-center px-6 transition-all ${isActive ? 'bg-white text-black' : 'bg-[#2C2C2E] text-white hover:bg-[#3C3C3E]'}`}
+                    >
+                      {opt.label}
+                      {isActive && <Check className="w-5 h-5" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => setStatusModalItem(null)} className="w-full mt-6 py-4 bg-transparent text-[#8E8E93] hover:text-white rounded-[18px] text-[17px] font-bold transition-all">Cancelar</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-              <div className="flex justify-between items-center mb-5">
-                <h3 className="text-xl font-bold text-white">Publicación</h3>
-                <button
-                  onClick={() => setSelectedItem(null)}
-                  className="w-8 h-8 flex items-center justify-center bg-[#2C2C2E] rounded-full text-[#8E8E93] hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" strokeWidth={2.5} />
+      {/* SOLUCIÓN 2: Redactar sale desde abajo en móvil y min-h-[300px] */}
+      <AnimatePresence>
+        {selectedItem && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4">
+            <motion.div 
+               initial={{ opacity: 0, y: "100%" }} 
+               animate={{ opacity: 1, y: 0 }} 
+               exit={{ opacity: 0, y: "100%" }} 
+               transition={{ type: "spring", damping: 25, stiffness: 300 }} 
+               className="bg-[#1C1C1E] w-full max-w-lg rounded-t-[32px] sm:rounded-[24px] shadow-2xl p-6 pt-5 max-h-[90vh] flex flex-col border-t sm:border border-white/10 pb-8 sm:pb-6"
+            >
+              <div className="w-12 h-1.5 bg-[#48484A] rounded-full mx-auto mb-5 sm:hidden"></div>
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-[34px] font-black text-white tracking-tight leading-none">Publicación</h3>
+                <button onClick={() => setSelectedItem(null)} className="w-8 h-8 flex items-center justify-center bg-[#2C2C2E] rounded-full text-[#8E8E93] hover:text-white mt-1"><X className="w-4 h-4" strokeWidth={2.5} /></button>
+              </div>
+              
+              {/* Cuadro de texto más alto para que quepa bien la descripción */}
+              <textarea 
+                value={descriptionText} 
+                onChange={(e) => setDescriptionText(e.target.value)} 
+                className="w-full px-5 py-4 bg-[#0A0A0A] rounded-[18px] text-[16px] text-white resize-none focus:outline-none mb-5 leading-relaxed min-h-[250px] sm:min-h-[300px]" 
+              />
+              
+              <div className="flex gap-3 mt-auto pb-safe">
+                <button onClick={saveDescription} className="flex-1 py-4 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[18px] text-[16px] font-semibold flex justify-center items-center gap-2 active:scale-95 transition-all"><Save className="w-4 h-4" /> Guardar</button>
+                <button onClick={copyToClipboard} className={`flex-1 py-4 rounded-[18px] text-[16px] font-bold flex justify-center items-center gap-2 active:scale-95 transition-all ${isCopied ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}>
+                  {isCopied ? <Check className="w-4 h-4" strokeWidth={3} /> : <Copy className="w-4 h-4" strokeWidth={2.5} />}
+                  {isCopied ? '¡Copiado!' : 'Copiar'}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-              <textarea
-                rows={8}
-                value={descriptionText}
-                onChange={(e) => setDescriptionText(e.target.value)}
-                className="w-full px-5 py-4 bg-[#0A0A0A] rounded-[18px] text-[16px] text-white resize-none focus:outline-none mb-5 leading-relaxed"
-              />
-
-              <div className="flex gap-3 mt-auto pb-safe">
-                <button
-                  onClick={saveDescription}
-                  className="flex-1 py-4 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[18px] text-[16px] font-semibold flex justify-center items-center gap-2 active:scale-95 transition-all"
-                >
-                  <Save className="w-4 h-4" /> Guardar
-                </button>
-                <button
-                  onClick={copyToClipboard}
-                  className="flex-1 py-4 bg-white text-black rounded-[18px] text-[16px] font-bold flex justify-center items-center gap-2 active:scale-95 transition-all"
-                >
-                  <Copy className="w-4 h-4" strokeWidth={2.5} /> Copiar
-                </button>
+      <AnimatePresence>
+        {itemToDelete && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-[#1C1C1E] border border-white/10 w-full max-w-sm rounded-[32px] shadow-2xl p-6 sm:p-8 flex flex-col relative">
+              <h3 className="text-[34px] font-black text-white tracking-tight mb-3 leading-none">Eliminar</h3>
+              <p className="text-[#8E8E93] text-[16px] mb-8 leading-relaxed">¿Seguro que deseas eliminar este artículo? Esta acción es irreversible.</p>
+              <div className="flex gap-3 mt-auto">
+                <button onClick={() => setItemToDelete(null)} className="flex-1 py-4 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[18px] text-[16px] font-semibold active:scale-95 transition-all">Cancelar</button>
+                <button onClick={confirmDelete} className="flex-1 py-4 bg-[#FA233B] hover:bg-[#FF3B30] text-white rounded-[18px] text-[16px] font-bold active:scale-95 transition-all">Eliminar</button>
               </div>
             </motion.div>
           </div>

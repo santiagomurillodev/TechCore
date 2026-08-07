@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, ShieldCheck, CheckCircle2, Trash2, FileText, Send, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ShieldCheck, CheckCircle2, Trash2, FileText, Send, AlertTriangle, ChevronDown, Check, X } from 'lucide-react';
 import { supabase } from './supabase';
 
 interface WorkshopProps {
@@ -17,14 +17,17 @@ export default function WorkshopKanban({
   onDeleteRepair,
 }: WorkshopProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('todos');
+  const [selectedFilter, setSelectedFilter] = useState('activos');
+
+  const [repairToDelete, setRepairToDelete] = useState<string | null>(null);
+  const [statusModalItem, setStatusModalItem] = useState<any>(null);
 
   const filteredRepairs = repairs.filter((r) => {
     const matchesSearch = 
       r.folio.toLowerCase().includes(searchTerm.toLowerCase()) || 
       r.client.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (selectedFilter === 'todos') {
+    if (selectedFilter === 'activos') {
       return matchesSearch && r.status !== 'entregado';
     }
     return matchesSearch && r.status === selectedFilter;
@@ -48,20 +51,24 @@ export default function WorkshopKanban({
     await supabase.from('repairs').update({ advance_payment: advance }).eq('id', id);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('¿Eliminar este registro? Esta acción es irreversible.')) {
-      const { error } = await supabase.from('repairs').delete().eq('id', id);
-      if (!error) {
-        if (onDeleteRepair) onDeleteRepair(id);
-      } else {
-        alert('Hubo un error al eliminar el registro.');
-        console.error(error);
-      }
+  const requestDelete = (id: string) => {
+    setRepairToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!repairToDelete) return;
+    
+    const { error } = await supabase.from('repairs').delete().eq('id', repairToDelete);
+    if (!error && onDeleteRepair) {
+      onDeleteRepair(repairToDelete);
+    } else if (error) {
+      console.error('Error al eliminar registro:', error);
     }
+    setRepairToDelete(null);
   };
 
   const filterOptions = [
-    { id: 'todos', label: 'Activos' },
+    { id: 'activos', label: 'Todos Activos' },
     { id: 'por_revisar', label: 'Por Revisar' },
     { id: 'en_proceso', label: 'En Proceso' },
     { id: 'esperando_pieza', label: 'Espera Pieza' },
@@ -69,13 +76,20 @@ export default function WorkshopKanban({
     { id: 'entregado', label: 'Entregados' }
   ];
 
+  const statusOptions = [
+    { value: 'por_revisar', label: 'Por Revisar' },
+    { value: 'en_proceso', label: 'En Proceso' },
+    { value: 'esperando_pieza', label: 'Espera Pieza' },
+    { value: 'listo', label: 'Listo para Entrega' },
+    { value: 'entregado', label: 'Entregado (Archivado)' }
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="w-full font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif] space-y-6 pb-10"
+      className="w-full font-['Helvetica_Neue',_Helvetica,_Arial,_sans-serif] space-y-6 relative"
     >
-      {/* HEADER */}
       <div className="px-2 pt-2 pb-4 flex justify-between items-end border-b border-[#1C1C1E]">
         <div>
           <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase block mb-1">
@@ -92,9 +106,7 @@ export default function WorkshopKanban({
         </div>
       </div>
 
-      {/* BUSCADOR Y FILTROS */}
       <div className="space-y-4">
-        {/* Barra de Búsqueda (Ocupa el 100% del ancho) */}
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8E8E93]" />
           <input
@@ -106,37 +118,34 @@ export default function WorkshopKanban({
           />
         </div>
 
-        {/* Filtros Responsivos */}
         <div className="pt-1">
-          {/* Select nativo para Móvil */}
           <div className="sm:hidden relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-white" />
-            </div>
             <select
               value={selectedFilter}
               onChange={(e) => setSelectedFilter(e.target.value)}
-              className="w-full bg-white text-black text-[16px] font-bold rounded-[16px] pl-10 pr-4 py-3.5 focus:outline-none appearance-none"
+              className="w-full bg-[#1C1C1E] text-white text-[16px] font-bold rounded-[16px] px-5 py-4 focus:outline-none appearance-none cursor-pointer"
             >
               {filterOptions.map(filter => (
-                <option key={filter.id} value={filter.id}>
+                <option key={filter.id} value={filter.id} className="bg-[#1C1C1E] text-white">
                   {filter.label}
                 </option>
               ))}
             </select>
+            <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
+              <ChevronDown className="h-5 w-5 text-[#8E8E93]" />
+            </div>
           </div>
 
-          {/* Grid de 6 columnas para PC (alineado perfectamente al ancho de la barra de búsqueda) */}
-          <div className="hidden sm:grid grid-cols-6 gap-2.5 w-full">
+          <div className="hidden sm:grid sm:grid-cols-6 gap-2.5 w-full">
             {filterOptions.map(filter => {
               const isActive = selectedFilter === filter.id;
               return (
                 <button
                   key={filter.id}
                   onClick={() => setSelectedFilter(filter.id)}
-                  className={`py-3 rounded-[14px] text-[13px] font-medium transition-all text-center truncate px-2 ${
+                  className={`py-3.5 rounded-[14px] text-[13px] font-bold transition-all text-center truncate px-2 ${
                     isActive 
-                      ? 'bg-white text-black font-bold shadow-md' 
+                      ? 'bg-white text-black shadow-md' 
                       : 'bg-[#1C1C1E] text-[#8E8E93] hover:bg-[#2C2C2E] hover:text-white'
                   }`}
                 >
@@ -148,7 +157,6 @@ export default function WorkshopKanban({
         </div>
       </div>
 
-      {/* GRID DE REPARACIONES */}
       <div className="space-y-5">
         {filteredRepairs.length === 0 ? (
           <div className="text-center py-16 text-[#8E8E93] font-medium text-[15px]">
@@ -170,17 +178,17 @@ export default function WorkshopKanban({
             const isReadyStage = item.status === 'listo';
             const isDelivered = item.status === 'entregado';
 
+            const currentStatusLabel = statusOptions.find(opt => opt.value === item.status)?.label || 'Estado';
+
             return (
               <div
                 key={item.id}
                 className="bg-[#1C1C1E] rounded-[24px] overflow-hidden flex flex-col md:flex-row relative"
               >
-                {/* Indicadores de estado visuales */}
                 {isDelivered && <div className="absolute top-0 left-0 w-full h-1 md:w-1.5 md:h-full bg-[#8E8E93] z-10"></div>}
                 {isLoss && !isDelivered && <div className="absolute top-0 left-0 w-full h-1 md:w-1.5 md:h-full bg-[#FA233B] z-10"></div>}
                 {isReadyStage && <div className="absolute top-0 left-0 w-full h-1 md:w-1.5 md:h-full bg-white z-10"></div>}
 
-                {/* COLUMNA IZQUIERDA: Info Técnica */}
                 <div className="p-5 sm:p-6 flex-1 space-y-5">
                   <div className="flex justify-between items-start">
                     <div>
@@ -193,7 +201,7 @@ export default function WorkshopKanban({
                       </h3>
                     </div>
                     <button
-                      onClick={() => handleDelete(item.id)}
+                      onClick={() => requestDelete(item.id)}
                       className="w-8 h-8 flex items-center justify-center bg-[#2C2C2E] hover:bg-[#FA233B] hover:text-white rounded-full text-[#8E8E93] transition-colors active:scale-95"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -226,25 +234,16 @@ export default function WorkshopKanban({
                   </div>
                 </div>
 
-                {/* COLUMNA DERECHA: Finanzas y Controles */}
                 <div className="p-5 sm:p-6 w-full md:w-[320px] bg-[#252528] md:border-l border-[#38383A] flex flex-col justify-between gap-5">
                   
-                  {/* Select Nativo iOS */}
-                  <div className="relative">
-                    <select
-                      value={item.status}
-                      onChange={(e) => onUpdateStatus(item.id, e.target.value)}
-                      className="w-full bg-[#1C1C1E] text-white text-[15px] font-bold rounded-[16px] px-4 py-3.5 focus:outline-none appearance-none"
-                    >
-                      <option value="por_revisar">Por Revisar</option>
-                      <option value="en_proceso">En Proceso</option>
-                      <option value="esperando_pieza">Espera Pieza</option>
-                      <option value="listo">Listo para Entrega</option>
-                      <option value="entregado">Entregado (Archivado)</option>
-                    </select>
-                  </div>
+                  <button
+                    onClick={() => setStatusModalItem(item)}
+                    className="w-full bg-[#1C1C1E] text-white text-[15px] font-bold rounded-[16px] px-5 py-4 flex justify-between items-center active:scale-95 transition-all border border-white/5 hover:border-white/10"
+                  >
+                    <span>{currentStatusLabel}</span>
+                    <ChevronDown className="w-4 h-4 text-[#8E8E93]" />
+                  </button>
 
-                  {/* Finanzas */}
                   <div className="space-y-4">
                     <div className="bg-[#1C1C1E] rounded-[16px] overflow-hidden grid grid-cols-3 divide-x divide-[#48484A]">
                       <div className="py-3 flex flex-col items-center">
@@ -288,7 +287,6 @@ export default function WorkshopKanban({
                     </div>
                   </div>
 
-                  {/* Acciones */}
                   <div className="pt-2">
                     {isEarlyStage && (
                       <button
@@ -340,13 +338,79 @@ export default function WorkshopKanban({
                       </div>
                     )}
                   </div>
-
                 </div>
               </div>
             );
           })
         )}
       </div>
+
+      <AnimatePresence>
+        {statusModalItem && (
+          <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-6 sm:pb-4">
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-[#1C1C1E] border border-white/10 sm:border w-full max-w-sm rounded-[32px] sm:rounded-[32px] shadow-2xl p-6 sm:p-8 flex flex-col relative"
+            >
+              <h3 className="text-[34px] font-black text-white tracking-tight mb-6 leading-none text-center">Estado</h3>
+              <div className="space-y-3">
+                {statusOptions.map(opt => {
+                  const isActive = statusModalItem.status === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => { onUpdateStatus(statusModalItem.id, opt.value); setStatusModalItem(null); }}
+                      className={`w-full py-4 rounded-[18px] text-[17px] font-bold flex justify-between items-center px-6 transition-all ${isActive ? 'bg-white text-black' : 'bg-[#2C2C2E] text-white hover:bg-[#3C3C3E]'}`}
+                    >
+                      {opt.label}
+                      {isActive && <Check className="w-5 h-5" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => setStatusModalItem(null)} className="w-full mt-6 py-4 bg-transparent text-[#8E8E93] hover:text-white rounded-[18px] text-[17px] font-bold transition-all">Cancelar</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {repairToDelete && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#1C1C1E] border border-white/10 w-full max-w-sm rounded-[32px] shadow-2xl p-6 sm:p-8 flex flex-col relative"
+            >
+              <h3 className="text-[34px] font-black text-white tracking-tight mb-3 leading-none">
+                Eliminar
+              </h3>
+              <p className="text-[#8E8E93] text-[16px] mb-8 leading-relaxed">
+                ¿Seguro que deseas eliminar el registro de este equipo? Esta acción es irreversible.
+              </p>
+
+              <div className="flex gap-3 mt-auto">
+                <button
+                  onClick={() => setRepairToDelete(null)}
+                  className="flex-1 py-4 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[18px] text-[16px] font-semibold active:scale-95 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-4 bg-[#FA233B] hover:bg-[#FF3B30] text-white rounded-[18px] text-[16px] font-bold active:scale-95 transition-all"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

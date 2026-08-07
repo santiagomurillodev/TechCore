@@ -143,13 +143,13 @@ export default function ReceptionForm({
           </div>
         </div>
 
-        {/* DATOS DEL CLIENTE */}
+        {/* DATOS DEL CLIENTE (Líneas de borde a borde usando divide-y) */}
         <div className="space-y-2.5">
           <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block mt-1">
             Datos del Cliente
           </label>
           
-          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden">
+          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden divide-y divide-[#38383A]">
             <input
               type="text"
               required
@@ -158,9 +158,6 @@ export default function ReceptionForm({
               onChange={(e) => setFormData({ ...formData, client: e.target.value })}
               className="w-full bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors"
             />
-            
-            {/* Línea divisoria más clara y definida */}
-            <div className="h-[1px] bg-[#48484A] ml-5"></div>
             
             <input
               type="tel"
@@ -175,15 +172,14 @@ export default function ReceptionForm({
           </div>
         </div>
 
-        {/* DETALLES TÉCNICOS */}
+        {/* DETALLES TÉCNICOS (Líneas de borde a borde) */}
         <div className="space-y-2.5">
           <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block mt-1">
             Detalles Técnicos
           </label>
           
-          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden">
-            {/* Usamos w-2/3 y w-1/3 para evitar que se aplasten */}
-            <div className="flex">
+          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden divide-y divide-[#38383A]">
+            <div className="flex divide-x divide-[#38383A]">
               <input
                 type="text"
                 required
@@ -193,8 +189,6 @@ export default function ReceptionForm({
                 className="w-2/3 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors"
               />
               
-              <div className="w-[1px] bg-[#48484A] my-3 shrink-0"></div>
-              
               <input
                 type="text"
                 placeholder="PIN / Pass"
@@ -203,8 +197,6 @@ export default function ReceptionForm({
                 className="w-1/3 bg-transparent text-white px-4 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors font-mono text-center"
               />
             </div>
-
-            <div className="h-[1px] bg-[#48484A] ml-5"></div>
 
             <textarea
               required
@@ -217,13 +209,13 @@ export default function ReceptionForm({
           </div>
         </div>
 
-        {/* FINANZAS */}
+        {/* FINANZAS (Líneas de borde a borde) */}
         <div className="space-y-2.5">
           <label className="text-[11px] font-bold tracking-[0.2em] text-[#8E8E93] uppercase ml-2 block mt-1">
             Finanzas
           </label>
           
-          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden flex">
+          <div className="bg-[#1C1C1E] rounded-[18px] overflow-hidden flex divide-x divide-[#38383A]">
             <input
               type="number"
               placeholder="Cotización ($)"
@@ -231,8 +223,6 @@ export default function ReceptionForm({
               onChange={(e) => setFormData({ ...formData, repairPrice: e.target.value })}
               className="w-1/2 bg-transparent text-white px-5 py-4 text-[16px] placeholder:text-[#8E8E93] focus:outline-none transition-colors font-semibold text-center"
             />
-            
-            <div className="w-[1px] bg-[#48484A] my-3 shrink-0"></div>
             
             <input
               type="number"
