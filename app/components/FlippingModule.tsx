@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Tag, Copy, X, Save, Trash2, ChevronDown, Check, Search } from 'lucide-react';
+import { Plus, Tag, Copy, X, Save, Trash2, ChevronDown, Check, Search, Store } from 'lucide-react';
 import { supabase } from './supabase';
 
 interface FlippingProps {
@@ -28,6 +28,28 @@ export default function FlippingModule({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('activos');
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Funcionalidad ⌘ K para enfocar el buscador
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Formateador Financiero
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
 
   const [formData, setFormData] = useState({
     item: '',
@@ -124,57 +146,64 @@ export default function FlippingModule({
           Ganancia Neta
         </label>
         <p className="text-4xl font-bold text-white tracking-tight">
-          ${totalFlippingProfit}.<span className="text-xl text-[#8E8E93]">00</span>
+          ${totalFlippingProfit.toLocaleString('en-US')}.<span className="text-xl text-[#8E8E93]">00</span>
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8E8E93]" />
-          <input
-            type="text"
-            placeholder="Buscar artículo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-5 py-4 bg-[#1C1C1E] rounded-[18px] text-[16px] text-white placeholder:text-[#8E8E93] focus:outline-none transition-all"
-          />
-        </div>
-
-        <div className="pt-1">
-          <div className="sm:hidden relative">
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="w-full bg-[#1C1C1E] text-white text-[16px] font-bold rounded-[16px] px-5 py-4 focus:outline-none appearance-none cursor-pointer"
-            >
-              {filterOptions.map(filter => (
-                <option key={filter.id} value={filter.id} className="bg-[#1C1C1E] text-white">
-                  {filter.label}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
-              <ChevronDown className="h-5 w-5 text-[#8E8E93]" />
+      {/* Cabecera pegajosa con Glassmorphism */}
+      <div className="sticky top-0 z-30 bg-[#000000]/80 backdrop-blur-xl pt-2 pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-transparent shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div className="space-y-4">
+          <div className="relative w-full group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8E8E93] group-focus-within:text-white transition-colors" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Buscar artículo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-[60px] py-4 bg-[#1C1C1E] rounded-[18px] text-[16px] text-white placeholder:text-[#8E8E93] focus:outline-none focus:ring-1 focus:ring-white/20 transition-all shadow-inner"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-[#8E8E93] bg-[#2C2C2E] px-2 py-1 rounded-md text-[11px] font-bold tracking-widest pointer-events-none">
+              <span>⌘</span><span>K</span>
             </div>
           </div>
 
-          <div className="hidden sm:grid sm:grid-cols-4 gap-2.5 w-full">
-            {filterOptions.map(filter => {
-              const isActive = selectedFilter === filter.id;
-              return (
-                <button
-                  key={filter.id}
-                  onClick={() => setSelectedFilter(filter.id)}
-                  className={`py-3.5 rounded-[14px] text-[14px] font-bold transition-all text-center truncate px-2 ${
-                    isActive 
-                      ? 'bg-white text-black shadow-md' 
-                      : 'bg-[#1C1C1E] text-[#8E8E93] hover:bg-[#2C2C2E] hover:text-white'
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              );
-            })}
+          <div className="pt-1">
+            <div className="sm:hidden relative">
+              <select
+                value={selectedFilter}
+                onChange={(e) => setSelectedFilter(e.target.value)}
+                className="w-full bg-[#1C1C1E] text-white text-[16px] font-bold rounded-[16px] px-5 py-4 focus:outline-none appearance-none cursor-pointer"
+              >
+                {filterOptions.map(filter => (
+                  <option key={filter.id} value={filter.id} className="bg-[#1C1C1E] text-white">
+                    {filter.label}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
+                <ChevronDown className="h-5 w-5 text-[#8E8E93]" />
+              </div>
+            </div>
+
+            <div className="hidden sm:grid sm:grid-cols-4 gap-2.5 w-full">
+              {filterOptions.map(filter => {
+                const isActive = selectedFilter === filter.id;
+                return (
+                  <button
+                    key={filter.id}
+                    onClick={() => setSelectedFilter(filter.id)}
+                    className={`py-3.5 rounded-[14px] text-[14px] font-bold transition-all text-center truncate px-2 ${
+                      isActive 
+                        ? 'bg-white text-black shadow-md' 
+                        : 'bg-[#1C1C1E] text-[#8E8E93] hover:bg-[#2C2C2E] hover:text-white'
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -231,71 +260,92 @@ export default function FlippingModule({
             <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-4 rounded-[18px] bg-[#2C2C2E] text-white hover:bg-[#3C3C3E] active:scale-[0.98] transition-all font-semibold text-[16px]">
               Cancelar
             </button>
-            <button type="submit" className="flex-1 py-4 rounded-[18px] bg-white text-black font-bold hover:bg-gray-200 active:scale-[0.98] transition-all text-[16px]">
+            <button type="submit" className="flex-1 py-4 rounded-[18px] bg-white text-black font-bold hover:bg-gray-200 active:scale-[0.98] transition-all text-[16px] shadow-[0_0_20px_rgba(255,255,255,0.15)]">
               Guardar
             </button>
           </div>
         </motion.form>
       )}
 
-      <div className="space-y-4 mt-8">
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-16 text-[#8E8E93] font-medium text-[15px]">
-            No hay artículos en esta categoría.
-          </div>
-        ) : (
-          filteredItems.map((item) => {
-            const isSold = item.status === 'vendido';
-            const totalCost = item.buyPrice + (Number(item.repairCost) || 0);
-            const profit = item.sellPrice - totalCost;
-            const currentStatusLabel = statusOptions.find(opt => opt.value === item.status)?.label || 'Estado';
-
-            return (
-              <div key={item.id} className="bg-[#1C1C1E] p-5 rounded-[18px] flex flex-col justify-between overflow-hidden">
-                <div className="flex justify-between items-center mb-6 gap-4">
-                  <h3 className={`font-bold text-[17px] uppercase tracking-wider truncate ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
-                    {item.item}
-                  </h3>
-                  
-                  <button
-                    onClick={() => setStatusModalItem(item)}
-                    className="flex items-center gap-1.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] px-3 py-1.5 rounded-[12px] active:scale-95 transition-all shrink-0"
-                  >
-                    <span className={`text-[13px] font-bold ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
-                      {currentStatusLabel}
-                    </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-[#8E8E93]" />
-                  </button>
-                </div>
-
-                <div className="flex items-center border-b border-[#38383A] pb-5 mb-5 divide-x divide-[#38383A]">
-                  <div className="flex-1 text-center px-2">
-                    <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Costo</p>
-                    <p className="font-bold text-white text-[16px]">${totalCost}</p>
-                  </div>
-                  <div className="flex-1 text-center px-2">
-                    <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Venta</p>
-                    <p className="font-bold text-white text-[16px]">${item.sellPrice}</p>
-                  </div>
-                  <div className="flex-1 text-center px-2">
-                    <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">{isSold ? 'Ganancia' : 'Proyectado'}</p>
-                    <p className="font-bold text-white text-[16px]">${profit}</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button onClick={() => openEditor(item)} className="flex-1 py-3.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[14px] text-[15px] font-semibold transition-colors flex items-center justify-center gap-2 active:scale-95">
-                    <Tag className="w-4 h-4" /> Redactar
-                  </button>
-                  <button onClick={() => setItemToDelete(item.id)} className="w-[52px] flex items-center justify-center bg-[#2C2C2E] hover:bg-[#3C3C3E] text-[#8E8E93] hover:text-red-400 rounded-[14px] transition-colors active:scale-95">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+      <motion.div layout className="space-y-4 mt-8 pt-2">
+        <AnimatePresence mode="popLayout">
+          {filteredItems.length === 0 ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0, scale: 0.95 }}
+              key="empty-state"
+              className="flex flex-col items-center justify-center py-20 text-center"
+            >
+              <div className="w-24 h-24 bg-[#1C1C1E] rounded-full flex items-center justify-center mb-6 relative">
+                <div className="absolute inset-0 bg-white/5 rounded-full blur-xl"></div>
+                <Store className="w-10 h-10 text-[#8E8E93]" strokeWidth={1.5} />
               </div>
-            );
-          })
-        )}
-      </div>
+              <h3 className="text-xl font-bold text-white mb-2">Sin Artículos</h3>
+              <p className="text-[15px] text-[#8E8E93] max-w-[250px] leading-relaxed">No hay artículos en esta categoría o bajo esta búsqueda.</p>
+            </motion.div>
+          ) : (
+            filteredItems.map((item) => {
+              const isSold = item.status === 'vendido';
+              const totalCost = item.buyPrice + (Number(item.repairCost) || 0);
+              const profit = item.sellPrice - totalCost;
+              const currentStatusLabel = statusOptions.find(opt => opt.value === item.status)?.label || 'Estado';
+
+              return (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  key={item.id} 
+                  className="bg-[#1C1C1E] p-5 rounded-[18px] flex flex-col justify-between overflow-hidden"
+                >
+                  <div className="flex justify-between items-center mb-6 gap-4">
+                    <h3 className={`font-bold text-[17px] uppercase tracking-wider truncate ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
+                      {item.item}
+                    </h3>
+                    
+                    <button
+                      onClick={() => setStatusModalItem(item)}
+                      className="flex items-center gap-1.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] px-3 py-1.5 rounded-[12px] active:scale-95 transition-all shrink-0"
+                    >
+                      <span className={`text-[13px] font-bold ${isSold ? 'text-[#8E8E93]' : 'text-white'}`}>
+                        {currentStatusLabel}
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 text-[#8E8E93]" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center border-b border-[#38383A] pb-5 mb-5 divide-x divide-[#38383A]">
+                    <div className="flex-1 text-center px-2">
+                      <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Costo</p>
+                      <p className="font-bold text-white text-[16px]">{formatMoney(totalCost)}</p>
+                    </div>
+                    <div className="flex-1 text-center px-2">
+                      <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">Venta</p>
+                      <p className="font-bold text-white text-[16px]">{formatMoney(item.sellPrice)}</p>
+                    </div>
+                    <div className="flex-1 text-center px-2">
+                      <p className="text-[10px] font-bold tracking-widest text-[#8E8E93] uppercase mb-1">{isSold ? 'Ganancia' : 'Proyectado'}</p>
+                      <p className="font-bold text-white text-[16px]">{formatMoney(profit)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button onClick={() => openEditor(item)} className="flex-1 py-3.5 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[14px] text-[15px] font-semibold transition-colors flex items-center justify-center gap-2 active:scale-95">
+                      <Tag className="w-4 h-4" /> Redactar
+                    </button>
+                    <button onClick={() => setItemToDelete(item.id)} className="w-[52px] flex items-center justify-center bg-[#2C2C2E] hover:bg-[#3C3C3E] text-[#8E8E93] hover:text-red-400 rounded-[14px] transition-colors active:scale-95">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       <AnimatePresence>
         {statusModalItem && (
@@ -315,7 +365,7 @@ export default function FlippingModule({
                     <button
                       key={opt.value}
                       onClick={() => { onUpdateStatus(statusModalItem.id, opt.value); setStatusModalItem(null); }}
-                      className={`w-full py-4 rounded-[18px] text-[17px] font-bold flex justify-between items-center px-6 transition-all ${isActive ? 'bg-white text-black' : 'bg-[#2C2C2E] text-white hover:bg-[#3C3C3E]'}`}
+                      className={`w-full py-4 rounded-[18px] text-[17px] font-bold flex justify-between items-center px-6 transition-all ${isActive ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.15)]' : 'bg-[#2C2C2E] text-white hover:bg-[#3C3C3E]'}`}
                     >
                       {opt.label}
                       {isActive && <Check className="w-5 h-5" strokeWidth={3} />}
@@ -329,7 +379,6 @@ export default function FlippingModule({
         )}
       </AnimatePresence>
 
-      {/* SOLUCIÓN 2: Redactar sale desde abajo en móvil y min-h-[300px] */}
       <AnimatePresence>
         {selectedItem && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4">
@@ -346,7 +395,6 @@ export default function FlippingModule({
                 <button onClick={() => setSelectedItem(null)} className="w-8 h-8 flex items-center justify-center bg-[#2C2C2E] rounded-full text-[#8E8E93] hover:text-white mt-1"><X className="w-4 h-4" strokeWidth={2.5} /></button>
               </div>
               
-              {/* Cuadro de texto más alto para que quepa bien la descripción */}
               <textarea 
                 value={descriptionText} 
                 onChange={(e) => setDescriptionText(e.target.value)} 
@@ -355,7 +403,7 @@ export default function FlippingModule({
               
               <div className="flex gap-3 mt-auto pb-safe">
                 <button onClick={saveDescription} className="flex-1 py-4 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[18px] text-[16px] font-semibold flex justify-center items-center gap-2 active:scale-95 transition-all"><Save className="w-4 h-4" /> Guardar</button>
-                <button onClick={copyToClipboard} className={`flex-1 py-4 rounded-[18px] text-[16px] font-bold flex justify-center items-center gap-2 active:scale-95 transition-all ${isCopied ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}>
+                <button onClick={copyToClipboard} className={`flex-1 py-4 rounded-[18px] text-[16px] font-bold flex justify-center items-center gap-2 active:scale-95 transition-all ${isCopied ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]' : 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.15)]'}`}>
                   {isCopied ? <Check className="w-4 h-4" strokeWidth={3} /> : <Copy className="w-4 h-4" strokeWidth={2.5} />}
                   {isCopied ? '¡Copiado!' : 'Copiar'}
                 </button>
@@ -373,7 +421,7 @@ export default function FlippingModule({
               <p className="text-[#8E8E93] text-[16px] mb-8 leading-relaxed">¿Seguro que deseas eliminar este artículo? Esta acción es irreversible.</p>
               <div className="flex gap-3 mt-auto">
                 <button onClick={() => setItemToDelete(null)} className="flex-1 py-4 bg-[#2C2C2E] hover:bg-[#3C3C3E] text-white rounded-[18px] text-[16px] font-semibold active:scale-95 transition-all">Cancelar</button>
-                <button onClick={confirmDelete} className="flex-1 py-4 bg-[#FA233B] hover:bg-[#FF3B30] text-white rounded-[18px] text-[16px] font-bold active:scale-95 transition-all">Eliminar</button>
+                <button onClick={confirmDelete} className="flex-1 py-4 bg-[#FA233B] hover:bg-[#FF3B30] text-white rounded-[18px] text-[16px] font-bold active:scale-95 transition-all shadow-[0_0_20px_rgba(250,35,59,0.3)]">Eliminar</button>
               </div>
             </motion.div>
           </div>

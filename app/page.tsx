@@ -172,12 +172,12 @@ export default function TechCoreApp() {
             {getPageTitle()}
           </h1>
 
-          {/* Menú Superior (PC) */}
-          <nav className="hidden sm:flex items-center gap-6 pb-1">
+          {/* Menú Superior (PC) con el Indicador Activo */}
+          <nav className="hidden sm:flex items-center gap-2 pb-1">
             <button
               onClick={() => setActiveModule('recepcion')}
-              className={`flex items-center gap-2 transition-all font-bold text-[15px] ${
-                activeModule === 'recepcion' ? 'text-white' : 'text-[#8E8E93] hover:text-white/80'
+              className={`flex items-center gap-2 transition-all font-bold text-[14px] px-4 py-2 rounded-full ${
+                activeModule === 'recepcion' ? 'bg-white/10 text-white shadow-sm' : 'text-[#8E8E93] hover:text-white/80 hover:bg-white/5'
               }`}
             >
               <Smartphone className="w-[18px] h-[18px]" strokeWidth={2.5} />
@@ -186,14 +186,14 @@ export default function TechCoreApp() {
             
             <button
               onClick={() => setActiveModule('taller')}
-              className={`flex items-center gap-2 transition-all font-bold text-[15px] relative ${
-                activeModule === 'taller' ? 'text-white' : 'text-[#8E8E93] hover:text-white/80'
+              className={`flex items-center gap-2 transition-all font-bold text-[14px] px-4 py-2 rounded-full relative ${
+                activeModule === 'taller' ? 'bg-white/10 text-white shadow-sm' : 'text-[#8E8E93] hover:text-white/80 hover:bg-white/5'
               }`}
             >
               <Wrench className="w-[18px] h-[18px]" strokeWidth={2.5} />
               Taller
               {repairs.filter((r) => r.status !== 'entregado').length > 0 && (
-                <span className="absolute -top-2 -right-3 bg-white text-black text-[9px] min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 font-black shadow-sm">
+                <span className="absolute -top-1 -right-1 bg-white text-black text-[9px] min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-1 font-black shadow-[0_0_10px_rgba(255,255,255,0.3)]">
                   {repairs.filter((r) => r.status !== 'entregado').length}
                 </span>
               )}
@@ -201,8 +201,8 @@ export default function TechCoreApp() {
 
             <button
               onClick={() => setActiveModule('flipping')}
-              className={`flex items-center gap-2 transition-all font-bold text-[15px] ${
-                activeModule === 'flipping' ? 'text-white' : 'text-[#8E8E93] hover:text-white/80'
+              className={`flex items-center gap-2 transition-all font-bold text-[14px] px-4 py-2 rounded-full ${
+                activeModule === 'flipping' ? 'bg-white/10 text-white shadow-sm' : 'text-[#8E8E93] hover:text-white/80 hover:bg-white/5'
               }`}
             >
               <TrendingUp className="w-[18px] h-[18px]" strokeWidth={2.5} />
